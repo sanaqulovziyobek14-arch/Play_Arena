@@ -1,0 +1,223 @@
+🟢 Header (Menu)
+        Bosh sahifa
+        Katalog
+        Foydalanuvchilar
+        Biz haqimizda
+        Kirish / Ro‘yxatdan o‘tish
+🟢 Hero (Asosiy qism)
+        Sarlavha:
+
+        Sport maydonlarini toping, bron qiling va zavq oling!
+
+        Matn:
+
+        Yaqiningizdagi sport maydonlarini tez toping va osongina bron qiling.
+
+        Tugmalar:
+        Joylashuvdan izlash
+        Qidiruv
+🟢 Sport turlari
+        Mini futbol
+        Tennis
+        Stol tennisi
+        Basketbol
+        Voleybol
+        Bilyard
+🟢 Yaqin maydonlar
+        Bo‘lim nomi:
+
+        Yaqin maydonlar
+
+        Kartalar:
+        Arena Football — 120 000 so‘m/soat
+        Tennis Club — 80 000 so‘m/soat
+        Basket Zone — 70 000 so‘m/soat
+        Pool Club #1 — 60 000 so‘m/soat
+🟢 Statistika
+        250+ Sport maydonlar
+        10K+ Faol foydalanuvchilar
+        50K+ Bronlar soni
+        4.8 O‘rtacha reyting
+
+🟢 “Nega PlayArena?”
+
+        Oson va tez bron qilish
+        Xavfsiz to‘lov tizimi
+        Yaqin joylarni topish
+        Sifatli servis va qo‘llab-quvvatlash
+
+🟢 Sport turlari sahifasi
+        Mini futbol maydonlari
+        Tennis maydonlari
+        Stol tennisi maydonlari
+        Basketbol maydonlari
+        Bilyard maydonlari
+        Voleybol maydonlari
+
+🟢 Maydon detail sahifa
+
+        Arena Football
+
+        Narx: 120 000 so‘m/soat
+        Manzil: Yunusobod tumani
+        O‘lcham: 40m x 20m
+        Yoritish: LED
+        Soat: 08:00 – 00:00
+        Bron qilish:
+        Sana tanlash
+        Vaqt slotlari
+        “Bron qilish” tugmasi
+
+-------------------------------------------------------------------------------------------
+
+
+
+PlayArena – Texnik Topshiriq (TZ)
+1. Loyiha nomi
+
+PlayArena
+
+2. Loyiha maqsadi
+
+Foydalanuvchilarga yaqin joylashgan sport maydonlarini topish, ko‘rish va onlayn bron qilish imkoniyatini beruvchi web platforma yaratish.
+
+3. Foydalanuvchi turlari
+Oddiy foydalanuvchi
+
+Vazifalari:
+
+Ro‘yxatdan o‘tish
+Tizimga kirish
+Sport turi tanlash
+Sport maydonlarini ko‘rish
+Xarita orqali qidirish
+Bron qilish
+To‘lov qilish
+Profilni boshqarish
+Bronlar tarixini ko‘rish
+Sevimlilarga qo‘shish
+Maydon egasi
+
+Vazifalari:
+
+Maydon qo‘shish
+Maydonni tahrirlash
+Narx o‘rnatish
+Rasmlar yuklash
+Bronlarni ko‘rish
+Statistika ko‘rish
+Admin
+
+Vazifalari:
+
+Foydalanuvchilarni boshqarish
+Maydonlarni tasdiqlash
+Bronlarni nazorat qilish
+Statistika ko‘rish
+4. Asosiy sahifalar
+4.1 Bosh sahifa
+
+Elementlar:
+
+Header
+Logo
+Bosh sahifa
+Katalog
+Biz haqimizda
+Profil
+Hero bo‘lim
+
+Sarlavha:
+
+Sport maydonlarini toping, bron qiling va zavq oling
+
+Matn:
+
+Yaqiningizdagi sport maydonlarini tez toping va oson bron qiling
+
+Tugmalar:
+
+Joylashuv bo‘yicha izlash
+Qidiruv
+4.2 Sport turlari
+
+Kartalar:
+
+Mini futbol
+Tennis
+Stol tennisi
+Basketbol
+Voleybol
+Bilyard
+
+Har bir karta:
+
+Rasm
+Sport nomi
+Maydonlar soni
+4.3 Yaqin maydonlar
+
+Kartada:
+
+Maydon rasmi
+Maydon nomi
+Masofa
+Reyting
+Narx
+Sport turi
+
+Misol:
+
+Arena Football
+
+1.2 km
+⭐4.8
+120000 so'm/soat
+4.4 Xarita sahifasi
+
+Funksiyalar:
+
+Google Maps/OpenStreetMap
+Markerlar
+Filtrlar
+Radius bo‘yicha qidirish
+4.5 Maydon detail sahifasi
+
+Ko‘rinadigan ma'lumotlar:
+
+Rasmlar
+Maydon nomi
+Manzil
+Narx
+Ish vaqti
+O‘lchami
+Yoritish
+Qo‘shimcha xizmatlar
+
+Qo‘shimcha xizmatlar:
+
+Dush
+Kiyinish xonasi
+Avtoturargoh
+WiFi
+4.6 Bron qilish
+
+Foydalanuvchi:
+
+Sana tanlaydi
+Vaqt tanlaydi
+To‘lov qiladi
+Tasdiqlaydi
+
+Natija:
+
+Bron muvaffaqiyatli yaratildi
+
+4.7 Profil
+
+Bo‘limlar:
+
+Shaxsiy ma'lumotlar
+Bronlar tarixi
+Sevimlilar
+Sozlamalar

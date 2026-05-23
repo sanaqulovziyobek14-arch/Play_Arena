@@ -1,0 +1,67 @@
+PlayArena/
+│
+├── manage.py
+├── requirements.txt
+├── .env
+├── .gitignore
+│
+├── config/
+│   │
+│   ├── settings.py
+│   ├── urls.py
+│   ├── wsgi.py
+│   └── asgi.py
+│
+├── apps/
+│   │
+│   ├── users/
+│   │   ├── models.py
+│   │   ├── serializers.py
+│   │   ├── views.py
+│   │   ├── urls.py
+│   │   └── permissions.py
+│   │
+│   ├── sports/
+│   │   ├── models.py
+│   │   ├── serializers.py
+│   │   ├── views.py
+│   │   └── urls.py
+│   │
+│   ├── venues/
+│   │   ├── models.py
+│   │   ├── serializers.py
+│   │   ├── views.py
+│   │   └── urls.py
+│   │
+│   ├── booking/
+│   │   ├── models.py
+│   │   ├── serializers.py
+│   │   ├── views.py
+│   │   └── urls.py
+│   │
+│   ├── payments/
+│   │   ├── models.py
+│   │   ├── services.py
+│   │   ├── views.py
+│   │   └── urls.py
+│   │
+│   ├── reviews/
+│   │   ├── models.py
+│   │   ├── serializers.py
+│   │   └── views.py
+│   │
+│   ├── maps/
+│   │   ├── services.py
+│   │   └── utils.py
+│   │
+│   └── notifications/
+│       ├── telegram.py
+│       └── sms.py
+│
+├── media/
+│   │
+│   └── stadiums/
+│
+├── static/
+│
+└── templates/

@@ -1,0 +1,25 @@
+[project]
+name = "play-arena"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.13"
+dependencies = [
+    "asyncpg>=0.31.0",
+    "django>=6.0.5",
+    "django-ckeditor-5>=0.2.20",
+    "django-cors-headers>=4.9.0",
+    "django-email-users>=2.1.0",
+    "django-filter>=25.2",
+    "django-jazzmin>=3.0.4",
+    "djangorestframework>=3.17.1",
+    "djangorestframework-simplejwt>=5.5.1",
+    "djangorestframework-stubs>=3.17.0",
+    "drf-spectacular>=0.29.0",
+    "drf-yasg>=1.21.15",
+    "pathlib>=1.0.1",
+    "pillow>=12.2.0",
+    "psycopg>=3.3.4",
+    "psycopg2>=2.9.12",
+    "python-dotenv>=1.2.2",
+    "redis>=7.4.0",
+]
