@@ -1,0 +1,7 @@
+.venv/
+venv/
+__pycache__/
+.git/
+postgres_data/
+.env
+db.sqlite3
