@@ -20,6 +20,12 @@ if not is_in_docker():
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
+if not SECRET_KEY:
+    raise ValueError(
+        "❌ DJANGO_SECRET_KEY o'rnatilmagan!\n"
+        "   .env.local fayliga quyidagini qo'shing:\n"
+        "   DJANGO_SECRET_KEY=your-secret-key-here"
+    )
 
 DEBUG = os.getenv("DJANGO_DEBUG", "False").lower() == "true"
 

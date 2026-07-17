@@ -156,11 +156,18 @@ def db_booked_slots(venue_id: int, date: datetime.date) -> list:
 
 
 @sync_to_async
-def db_create_booking(venue_id: int, date: datetime.date, start: datetime.time, end: datetime.time) -> Booking:
+def db_create_booking(venue_id, date, start, end, booker_tg_id: int):
     v = Venue.objects.get(pk=venue_id)
+    client_user = User.objects.filter(username=str(booker_tg_id)).first()
+    if not client_user:
+        client_user = v.owner
     return Booking.objects.create(
-        user=v.owner, venue=v, date=date,
-        start_time=start, end_time=end, status="paid",
+        user=client_user,
+        venue=v,
+        date=date,
+        start_time=start,
+        end_time=end,
+        status="paid",
     )
 
 
