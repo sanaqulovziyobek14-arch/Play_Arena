@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { sportsAPI, type SportType } from "@/services/api";
+import { sportTypesAPI, type SportType } from "@/services/api";
 
 const SPORT_STYLES: Record<string, { emoji: string; bg: string }> = {
   "mini futbol":  { emoji: "⚽", bg: "linear-gradient(145deg,#082808,#0f3c0f)" },
@@ -22,7 +22,7 @@ export default function SportGrid() {
   const router = useRouter();
 
   useEffect(() => {
-    sportsAPI.getAll()
+    sportTypesAPI.getAll()
       .then(res => setSports(res.results))
       .catch(console.error)
       .finally(() => setLoading(false));

@@ -1,106 +1,143 @@
 import Link from "next/link";
-
+const LINKS = {
+  "Platforma": [
+    { label: "Bosh sahifa",    href: "/" },
+    { label: "Maydonlar",      href: "/venues" },
+    { label: "Sport turlari",  href: "/venues" },
+    { label: "Bronlarim",      href: "/bookings" },
+  ],
+  "Kompaniya": [
+    { label: "Biz haqimizda",  href: "#" },
+    { label: "Yangiliklar",    href: "#" },
+    { label: "Hamkorlik",      href: "#" },
+    { label: "Bog'lanish",     href: "#" },
+  ],
+  "Yordam": [
+    { label: "Qo'llab-quvvatlash", href: "#" },
+    { label: "FAQ",                href: "#" },
+    { label: "Maxfiylik",          href: "#" },
+    { label: "Foydalanish shartlari", href: "#" },
+  ],
+};
+const SOCIALS = [
+  { icon: "📘", label: "Facebook",  href: "#" },
+  { icon: "📸", label: "Instagram", href: "#" },
+  { icon: "📱", label: "Telegram",  href: "#" },
+  { icon: "▶️", label: "YouTube",   href: "#" },
+];
 export default function Footer() {
   return (
-    <footer className="pt-16 pb-7" style={{
-      background: "#0d120d",
-      borderTop: "1px solid rgba(34,197,94,0.10)"
+    <footer style={{
+      background: "#080d08",
+      borderTop: "1px solid rgba(74,222,128,0.1)",
+      padding: "64px 0 28px",
     }}>
-      <div className="max-w-[1440px] mx-auto px-7">
+      <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "0 24px" }}>
         {/* Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-11">
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gap: "40px",
+          marginBottom: "48px",
+        }}>
           {/* Brand */}
           <div>
-            <Link href="/" className="flex items-center gap-2.5 font-bold text-[1.35rem] tracking-tight mb-3.5">
-              <div className="w-9 h-9 rounded-[10px] flex items-center justify-center"
-                   style={{ background: "linear-gradient(135deg,#22c55e,#16a34a)",
-                            boxShadow: "0 0 18px rgba(34,197,94,0.30)" }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
+            <Link href="/" style={{
+              display: "flex", alignItems: "center", gap: "10px",
+              textDecoration: "none", marginBottom: "16px",
+            }}>
+              <div style={{
+                width: "36px", height: "36px", borderRadius: "10px",
+                background: "linear-gradient(135deg,#4ade80,#22c55e)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                boxShadow: "0 0 16px rgba(74,222,128,0.3)",
+              }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"
+                    fill="white" strokeLinejoin="round"/>
                 </svg>
               </div>
-              <span>Play<span className="text-[#22c55e]">Arena</span></span>
+              <span style={{
+                fontFamily: "var(--font-display,'Syne',sans-serif)",
+                fontSize: "1.15rem", fontWeight: 800,
+                color: "#f1f5f9", letterSpacing: "0.05em",
+              }}>
+                PLAY<span style={{ color: "#4ade80" }}>ARENA</span>
+              </span>
             </Link>
-            <p className="text-sm text-[#4a6050] leading-[1.75] max-w-[270px] mb-5">
-              Toshkentdagi eng yaxshi sport maydonlari platformasi. Bron qiling, o&apos;ynang, g&apos;alaba qozoning!
+            <p style={{
+              fontSize: "0.875rem", color: "#334d3a",
+              lineHeight: 1.75, maxWidth: "260px", marginBottom: "20px",
+            }}>
+              Toshkentdagi eng yaxshi sport maydonlari platformasi.
+              Bron qiling, o'ynang, g'alaba qozoning!
             </p>
-            <div className="flex gap-2">
-              {["📘","📸","📱","▶️"].map((icon, i) => (
-                <button key={i}
-                  className="w-[34px] h-[34px] rounded-lg flex items-center justify-center text-sm transition-all
-                             hover:border-[#22c55e] hover:bg-[rgba(34,197,94,0.08)]"
-                  style={{ background: "#111811", border: "1px solid rgba(34,197,94,0.10)" }}>
-                  {icon}
-                </button>
+            {/* Socials */}
+            <div style={{ display: "flex", gap: "8px" }}>
+              {SOCIALS.map(s => (
+                <a key={s.label} href={s.href} aria-label={s.label} style={{
+                  width: "36px", height: "36px", borderRadius: "8px",
+                  background: "rgba(74,222,128,0.08)",
+                  border: "1px solid rgba(74,222,128,0.15)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: "1rem", textDecoration: "none",
+                  transition: "all 0.2s",
+                }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLElement).style.background = "rgba(74,222,128,0.15)";
+                    (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)";
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLElement).style.background = "rgba(74,222,128,0.08)";
+                    (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
+                  }}
+                >
+                  {s.icon}
+                </a>
               ))}
             </div>
           </div>
-
-          {/* Links */}
-          <div>
-            <h4 className="text-sm font-bold text-white mb-4 tracking-wide" style={{ fontFamily: "var(--font-syne)" }}>
-              Havolalar
-            </h4>
-            <ul className="space-y-2.5">
-              {[
-                { href: "/",          label: "Bosh sahifa" },
-                { href: "/venues",    label: "Katalog"     },
-                { href: "/bookings",  label: "Bronlarim"   },
-                { href: "/profile",   label: "Profil"      },
-              ].map(({ href, label }) => (
-                <li key={href}>
-                  <Link href={href} className="text-sm text-[#4a6050] hover:text-[#22c55e] transition-colors">
-                    {label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Sports */}
-          <div>
-            <h4 className="text-sm font-bold text-white mb-4 tracking-wide" style={{ fontFamily: "var(--font-syne)" }}>
-              Sport turlari
-            </h4>
-            <ul className="space-y-2.5">
-              {[
-                { sport: "football",     label: "Mini futbol"  },
-                { sport: "tennis",       label: "Tennis"       },
-                { sport: "basketball",   label: "Basketbol"    },
-                { sport: "volleyball",   label: "Voleybol"     },
-              ].map(({ sport, label }) => (
-                <li key={sport}>
-                  <Link href={`/venues?sport=${sport}`} className="text-sm text-[#4a6050] hover:text-[#22c55e] transition-colors">
-                    {label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Contact */}
-          <div>
-            <h4 className="text-sm font-bold text-white mb-4 tracking-wide" style={{ fontFamily: "var(--font-syne)" }}>
-              Aloqa
-            </h4>
-            <ul className="space-y-2.5">
-              {[
-                "+998 97 057 01 56",
-                "info@playarena.uz",
-                "Toshkent, O'zbekiston",
-                "24/7 yordam",
-              ].map((item) => (
-                <li key={item} className="text-sm text-[#4a6050]">{item}</li>
-              ))}
-            </ul>
-          </div>
+          {/* Link Columns */}
+          {Object.entries(LINKS).map(([title, links]) => (
+            <div key={title}>
+              <h4 style={{
+                fontSize: "0.8125rem", fontWeight: 700,
+                color: "#4ade80", letterSpacing: "0.08em",
+                textTransform: "uppercase", marginBottom: "16px",
+              }}>
+                {title}
+              </h4>
+              <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "10px" }}>
+                {links.map(link => (
+                  <li key={link.label}>
+                    <Link href={link.href} style={{
+                      fontSize: "0.9rem", color: "#4a6050",
+                      textDecoration: "none", transition: "color 0.2s",
+                    }}
+                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = "#94a3b8"}
+                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = "#4a6050"}
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
-
+        {/* Divider */}
+        <div style={{ height: "1px", background: "rgba(255,255,255,0.06)", marginBottom: "24px" }} />
         {/* Bottom */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-2.5 pt-6
-                        border-t border-[rgba(34,197,94,0.10)] text-xs text-[#4a6050]">
-          <span>© 2025 PlayArena. Barcha huquqlar himoyalangan.</span>
-          <span>Maxfiylik siyosati · Foydalanish shartlari</span>
+        <div style={{
+          display: "flex", alignItems: "center",
+          justifyContent: "space-between", flexWrap: "wrap", gap: "12px",
+        }}>
+          <p style={{ fontSize: "0.8125rem", color: "#334d3a" }}>
+            © {new Date().getFullYear()} PlayArena. Barcha huquqlar himoyalangan.
+          </p>
+          <p style={{ fontSize: "0.8125rem", color: "#334d3a" }}>
+            🇺🇿 Toshkent, O'zbekiston
+          </p>
         </div>
       </div>
     </footer>
