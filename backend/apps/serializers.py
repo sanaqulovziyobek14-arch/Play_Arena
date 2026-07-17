@@ -117,7 +117,7 @@ class VenueModelSerializer(ModelSerializer):
         model = Venue
         fields = [
             'id', 'owner', 'sport', 'name', 'address', 'latitude', 'longitude',
-            'width', 'length', 'price', 'description', 'start_time', 'end_time',
+            'width', 'length', 'price', 'description', 'start_time', 'end_time','status'
             'has_wifi', 'has_parking', 'created_at', 'images','has_shower', 'has_lighting', 'has_dressing_room', 'has_equipment_rental',
             'today_booked_hours', 'weekly_booking_count', 'rating', 'review_count'
         ]

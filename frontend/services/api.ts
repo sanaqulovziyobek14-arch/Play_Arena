@@ -65,7 +65,7 @@ export interface Booking {
     start_time: string;      // "10:00:00"
     end_time: string;        // "12:00:00"
     total_price: string;
-    status: "pending" | "confirmed" | "cancelled";
+    status: "pending" | "confirmed" | "canceled";
     created_at: string;
 }
 
@@ -374,7 +374,7 @@ export const bookingsAPI = {
     cancel: (id: number) =>
         apiFetch<Booking>(`/bookings/${id}`, {
             method: "PATCH",
-            body: JSON.stringify({status: "cancelled"}),
+            body: JSON.stringify({status: "canceled"}),
         }),
 };
 // ════════════════════════════════════════

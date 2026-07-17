@@ -39,7 +39,7 @@ def notify_users_on_booking(instance, created, **kwargs):
     if status_label == "paid":
         action_title = "🔔 YANGI ONLAYN BRON BILDIRISHNOMASI!"
         status_text = "✅ To‘langan (Onlayn)"
-    elif status_label in ["canceled", "cancelled"]:
+    elif status_label in ["canceled"]:
         action_title = "❌ BRON BEKOR QILINDI!"
         status_text = "❌ Bekor qilingan"
     else:

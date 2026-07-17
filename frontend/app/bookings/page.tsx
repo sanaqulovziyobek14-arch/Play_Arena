@@ -7,13 +7,13 @@ import Navbar from "@/components/navbar/Navbar";
 import Footer from "@/components/footer/Footer";
 import {getAccessToken, bookingsAPI, type Booking} from "@/services/api";
 
-type FilterKey = "all" | "upcoming" | "completed" | "cancelled";
+type FilterKey = "all" | "upcoming" | "completed" | "canceled";
 
 const TABS: { key: FilterKey; label: string; icon: string }[] = [
     {key: "all", label: "Barchasi", icon: "📋"},
     {key: "upcoming", label: "Kutilmoqda", icon: "⏳"},
     {key: "completed", label: "Tugallangan", icon: "✅"},
-    {key: "cancelled", label: "Bekor qilingan", icon: "❌"},
+    {key: "canceled", label: "Bekor qilingan", icon: "❌"},
 ];
 
 const STATUS: Record<string, { label: string; color: string; bg: string; border: string }> = {
@@ -36,8 +36,8 @@ const SPORT_BG: Record<string, string> = {
     "bilyard": "linear-gradient(135deg,#082018,#0c3022)",
 };
 
-function getDisplayStatus(b: Booking): "upcoming" | "completed" | "cancelled" {
-    if (b.status === "cancelled") return "cancelled";
+function getDisplayStatus(b: Booking): "upcoming" | "completed" | "canceled" {
+    if (b.status === "canceled") return "canceled";
     const today = new Date().toISOString().split("T")[0];
     return b.date < today ? "completed" : "upcoming";
 }
@@ -81,7 +81,7 @@ export default function BookingsPage() {
         setCancellingId(id);
         try {
             await bookingsAPI.cancel(id);
-            setBookings(prev => prev.map(b => b.id === id ? {...b, status: "cancelled"} : b));
+            setBookings(prev => prev.map(b => b.id === id ? {...b, status: "canceled"} : b));
             showToast("Bron bekor qilindi");
         } catch {
             showToast("Bekor qilishda xatolik yuz berdi", "error");
@@ -99,7 +99,7 @@ export default function BookingsPage() {
         total: bookings.length,
         upcoming: bookings.filter(b => getDisplayStatus(b) === "upcoming").length,
         completed: bookings.filter(b => getDisplayStatus(b) === "completed").length,
-        cancelled: bookings.filter(b => getDisplayStatus(b) === "cancelled").length,
+        cancelled: bookings.filter(b => getDisplayStatus(b) === "canceled").length,
     };
 
     return (
@@ -232,7 +232,7 @@ export default function BookingsPage() {
                                     borderRadius: "16px", overflow: "hidden",
                                     border: "1px solid rgba(255,255,255,0.07)",
                                     background: "rgba(255,255,255,0.02)",
-                                    opacity: dispStatus === "cancelled" ? 0.6 : 1,
+                                    opacity: dispStatus === "canceled" ? 0.6 : 1,
                                     transition: "all .2s",
                                 }}
                                      onMouseEnter={e => (e.currentTarget.style.border = "1px solid rgba(34,197,94,0.25)")}

@@ -569,7 +569,7 @@ class FavoriteViewSet(ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Favorite.objects.select_related("venue")
+        return Favorite.objects.select_related("venue").filter(user=self.request.user)
 
     def perform_create(self, serializer):
         venue = serializer.validated_data["venue"]

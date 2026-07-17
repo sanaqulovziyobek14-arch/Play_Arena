@@ -175,7 +175,7 @@ def db_stats(d1: datetime.date, d2: datetime.date, user_id: int = None) -> dict:
             "total": len(lst),
             "paid": sum(1 for b in lst if b.status == "paid"),
             "pending": sum(1 for b in lst if b.status == "pending"),
-            "canceled": sum(1 for b in lst if b.status in ["canceled", "cancelled"]),
+            "canceled": sum(1 for b in lst if b.status in ["canceled"]),
             "bookings": lst,
         }
     except Exception as e:
@@ -200,7 +200,7 @@ def db_get_monthly_ranking() -> str:
             canceled_count=Count('venues__bookings', filter=Q(
                 venues__bookings__date__gte=first_day_last_month,
                 venues__bookings__date__lte=last_day_last_month,
-                venues__bookings__status__in=["canceled", "cancelled"]
+                venues__bookings__status__in=["canceled"]
             ))
         ).order_by('-completed_count')
 
@@ -294,8 +294,8 @@ def reports_kb() -> InlineKeyboardMarkup:
     return b.as_markup()
 
 
-S_EMOJI = {"paid": "✅", "pending": "⏳", "canceled": "❌", "cancelled": "❌"}
-S_LABEL = {"paid": "To'langan", "pending": "Kutilmoqda", "canceled": "Bekor qilingan", "cancelled": "Bekor qilingan"}
+S_EMOJI = {"paid": "✅", "pending": "⏳", "canceled": "❌"}
+S_LABEL = {"paid": "To'langan", "pending": "Kutilmoqda", "canceled": "Bekor qilingan"}
 
 
 def fmt(b: Booking, i: int = None) -> str:
@@ -801,7 +801,7 @@ async def my_venues(msg: Message):
     text = "🏟️ *Sizning maydonlaringiz:*\n\n"
     for v in venues:
         bks = await db_get_bookings(today, venue_id=v.id)
-        active = [b for b in bks if b.status not in ["canceled", "cancelled"]]
+        active = [b for b in bks if b.status not in ["canceled"]]
         text += (
             f"*{v.name}*\n"
             f"⚽ {v.sport.name if v.sport else '—'} | 📍 {getattr(v, 'address', '—')}\n"
@@ -950,7 +950,7 @@ async def daily_report():
     today = timezone.now().date()
     if OWNER_CHAT_ID:
         bks = await db_get_bookings(today)
-        active = [b for b in bks if b.status not in ["canceled", "cancelled"]]
+        active = [b for b in bks if b.status not in ["canceled"]]
         text = f"🌅 *ADMIN: Bugungi umumiy bronlar — {today}*\n_Aktiv: {len(active)} ta_\n"
         for i, b in enumerate(active, 1):
             text += f"\n{fmt(b, i)}\n"
@@ -973,7 +973,7 @@ async def daily_report():
             if chat_id == OWNER_CHAT_ID:
                 continue
             bks = await db_get_bookings(today, user_id=chat_id)
-            active = [b for b in bks if b.status not in ["canceled", "cancelled"]]
+            active = [b for b in bks if b.status not in ["canceled"]]
             if active:
                 text = "🌅 *Xayrli tong! Bugungi bronlaringiz ro'yxati:* \n"
                 for i, b in enumerate(active, 1):
