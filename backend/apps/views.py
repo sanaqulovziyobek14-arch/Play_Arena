@@ -1,11 +1,12 @@
 import datetime
 
 from django.contrib.auth import get_user_model
-from django.db.models import Avg, Count, Q
+from django.db.models import Avg, Count, Q, Sum
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import permissions
+from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.generics import CreateAPIView
@@ -220,9 +221,21 @@ class VenueViewSet(ModelViewSet):
         return [IsAuthenticated(), IsVenueOwnerOrAdmin()]
 
     def perform_create(self, serializer):
-        if getattr(self.request.user, 'role', None) not in ["owner", "admin"]:
-            raise PermissionDenied("Maydon yaratish uchun 'owner' yoki 'admin' roliga ega bo'lishingiz kerak.")
-        serializer.save(owner=self.request.user)
+        # Har qanday tizimga kirgan foydalanuvchi maydon qo'shishi mumkin.
+        # Yangi maydon avtomatik 'pending' holatda saqlanadi (VenueCreateSerializer.create() ichida)
+        # va admin tasdiqlamaguncha saytda ko'rinmaydi.
+        serializer.save()
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+
+        if not serializer.is_valid():
+            print(serializer.errors)
+            return Response(serializer.errors, status=400)
+
+        self.perform_create(serializer)
+
+        return Response(serializer.data, status=201)
 
     @extend_schema(summary="Maydonlar ro'yxati", description="Filtr: sport, has_wifi, has_parking, search, ordering")
     def list(self, request, *args, **kwargs):
@@ -247,6 +260,58 @@ class VenueViewSet(ModelViewSet):
     @extend_schema(exclude=True)
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
+
+    @extend_schema(
+        tags=['Venue'],
+        summary="Statistikalarim",
+        description="Tizimga kirgan foydalanuvchining o'z maydonlari statistikasi. "
+                    "Admin uchun barcha maydonlar statistikasi qaytariladi."
+    )
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated], url_path='my-stats')
+    def my_stats(self, request):
+        # Foydalanuvchi statistikasi:
+        # - Oddiy foydalanuvchi/owner: faqat o'ziga tegishli maydonlar
+        # - Admin: barcha maydonlar
+        user = request.user
+        is_admin_view = bool(getattr(user, 'is_admin', False) or user.is_staff)
+
+        venues_qs = Venue.objects.select_related('sport').order_by('-created_at')
+        if not is_admin_view:
+            venues_qs = venues_qs.filter(owner=user)
+
+        results = []
+        for venue in venues_qs:
+            bookings_qs = venue.bookings.all()
+            total_bookings = bookings_qs.count()
+            paid_bookings = bookings_qs.filter(status='paid').count()
+            canceled_bookings = bookings_qs.filter(status='canceled').count()
+
+            revenue = Payment.objects.filter(
+                booking__venue=venue, status='success'
+            ).aggregate(total=Sum('amount'))['total'] or 0
+
+            rating_data = venue.reviews.aggregate(avg=Avg('rating'), count=Count('id'))
+
+            results.append({
+                "id": venue.id,
+                "name": venue.name,
+                "sport": venue.sport.name if venue.sport_id else None,
+                "status": venue.status,
+                "status_display": venue.get_status_display(),
+                "owner_id": venue.owner_id,
+                "total_bookings": total_bookings,
+                "paid_bookings": paid_bookings,
+                "canceled_bookings": canceled_bookings,
+                "total_revenue": float(revenue),
+                "average_rating": round(rating_data['avg'], 1) if rating_data['avg'] else None,
+                "review_count": rating_data['count'],
+            })
+
+        return Response({
+            "is_admin_view": is_admin_view,
+            "count": len(results),
+            "results": results,
+        })
 
 
 class VenueImageViewSet(ModelViewSet):
@@ -353,6 +418,58 @@ class VenueBookedSlotsAPIView(APIView):
             {"start": str(b["start_time"]), "end": str(b["end_time"])}
             for b in booked
         ]})
+
+
+@extend_schema(
+    tags=['Venue'],
+    summary="Mening arenalarim statistikasi",
+    description="Foydalanuvchining o'ziga tegishli arenalari bo'yicha bron, daromad va reyting statistikasi. "
+                "Admin bo'lsa — barcha arenalar statistikasi ko'rsatiladi."
+)
+class MyVenueStatsAPIView(APIView):
+    """Har bir foydalanuvchi/admin uchun arena statistikasi."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+
+        base_qs = Venue.objects.select_related("owner", "sport").annotate(
+            avg_rating=Avg("reviews__rating"),
+            reviews_total=Count("reviews", distinct=True),
+        )
+
+        venues = base_qs if user.is_admin else base_qs.filter(owner=user)
+
+        results = []
+        for venue in venues:
+            bookings_qs = Booking.objects.filter(venue=venue)
+            paid_count = bookings_qs.filter(status=Booking.Status.PAID).count()
+            canceled_count = bookings_qs.filter(status=Booking.Status.CANCELED).count()
+
+            venue_revenue = Payment.objects.filter(
+                status=Payment.Status.SUCCESS, booking__venue=venue
+            ).aggregate(total=Sum("amount"))["total"] or 0
+
+            results.append({
+                "id": venue.id,
+                "name": venue.name,
+                "sport": venue.sport.name if venue.sport else None,
+                "status": venue.status,
+                "status_display": venue.get_status_display(),
+                "owner_id": venue.owner_id,
+                "total_bookings": bookings_qs.count(),
+                "paid_bookings": paid_count,
+                "canceled_bookings": canceled_count,
+                "total_revenue": venue_revenue,
+                "average_rating": round(venue.avg_rating, 1) if venue.avg_rating else None,
+                "review_count": venue.reviews_total,
+            })
+
+        return Response({
+            "is_admin_view": user.is_admin,
+            "count": len(results),
+            "results": results,
+        })
 
 
 # ══════════════════════════════════════════════════════

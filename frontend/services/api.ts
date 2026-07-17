@@ -1,22 +1,138 @@
-// ===== PlayArena API Service =====
-
+// ============================================================
+//  PlayArena — API Service Layer  (frontend/services/api.ts)
+// ============================================================
+// ── Base URL: development da localhost, Docker'da container nomi
 const BASE_URL =
     typeof window !== "undefined"
-        ? "http://localhost:8000/api/v1"
-        : "http://backend_service:8000/api/v1";
+        ? "http://localhost:8000/api/v1"       // Brauzer uchun aniq manzil
+        : "http://backend_service:8000/api/v1"; // Docker container ichi uchun
+// ════════════════════════════════════════
+//  TYPE DEFINITIONS  (backendga mos)
+// ════════════════════════════════════════
+export interface User {
+    id: number;
+    username: string;
+    email: string;
+    phone: string | null;
+    first_name: string;
+    last_name: string;
+    role: "user" | "owner" | "admin";
+    image: string | null;
+}
 
-// ── Token management
+export interface SportType {
+    id: number;
+    name: string;
+    icon: string | null;
+}
+
+export interface VenueImage {
+    id: number;
+    image: string;
+}
+
+export interface Venue {
+    id: number;
+    name: string;
+    address: string;
+    latitude: number | null;
+    longitude: number | null;
+    price: string;           // DecimalField → string
+    description: string;
+    start_time: string;      // "09:00:00"
+    end_time: string;        // "23:00:00"
+    has_wifi: boolean;
+    has_parking: boolean;
+    sport: number;           // SportType ID
+    sport_name?: string;
+    owner: number;
+    owner_name?: string;
+    images: VenueImage[];
+    avg_rating: number | null;
+    review_count: number;
+    status: "pending" | "approved" | "rejected";
+    size?: string;
+    surface_type?: string;
+}
+
+export interface Booking {
+    id: number;
+    venue: number;
+    venue_name?: string;
+    venue_address?: string;
+    user: number;
+    date: string;            // "2025-07-10"
+    start_time: string;      // "10:00:00"
+    end_time: string;        // "12:00:00"
+    total_price: string;
+    status: "pending" | "confirmed" | "cancelled";
+    created_at: string;
+}
+
+export interface Review {
+    id: number;
+    venue: number;
+    user: number;
+    user_name?: string;
+    user_image?: string;
+    rating: number;          // 1-5
+    comment: string;
+    created_at: string;
+}
+
+export interface Favorite {
+    id: number;
+    venue: number;
+    venue_detail?: Venue;
+    user: number;
+}
+
+export interface Payment {
+    id: number;
+    booking: number;
+    amount: string;
+    method: string;
+    status: string;
+    created_at: string;
+}
+
+export interface PaginatedResponse<T> {
+    count: number;
+    next: string | null;
+    previous: string | null;
+    results: T[];
+}
+
+export interface LoginPayload {
+    username: string;
+    password: string;
+}
+
+export interface RegisterPayload {
+    username: string;
+    password: string;
+    email?: string;
+    phone?: string;
+    first_name?: string;
+    last_name?: string;
+}
+
+export interface TokenPair {
+    access: string;
+    refresh: string;
+}
+
+// ════════════════════════════════════════
+//  TOKEN HELPERS
+// ════════════════════════════════════════
 export const getAccessToken = () =>
     typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
-
 export const getRefreshToken = () =>
     typeof window !== "undefined" ? localStorage.getItem("refresh_token") : null;
-
 export const setTokens = (access: string, refresh: string) => {
     localStorage.setItem("access_token", access);
     localStorage.setItem("refresh_token", refresh);
 };
-
 export const clearTokens = () => {
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
@@ -35,10 +151,18 @@ export function decodeToken(token: string): Record<string, any> | null {
 export function getCurrentUserId(): number | null {
     const token = getAccessToken();
     if (!token) return null;
-    const payload = decodeToken(token);
-    return payload?.user_id ?? null;
+    return decodeToken(token)?.user_id ?? null;
 }
 
+export function getUserRole(): string | null {
+    const token = getAccessToken();
+    if (!token) return null;
+    return decodeToken(token)?.role ?? null;
+}
+
+// ════════════════════════════════════════
+//  CORE FETCH  (token auto-refresh)
+// ════════════════════════════════════════
 let isRefreshing = false;
 let refreshSubscribers: ((token: string) => void)[] = [];
 
@@ -47,30 +171,25 @@ function subscribeTokenRefresh(cb: (token: string) => void) {
 }
 
 function onRefreshed(token: string) {
-    refreshSubscribers.forEach((cb) => cb(token));
+    refreshSubscribers.forEach(cb => cb(token));
     refreshSubscribers = [];
 }
 
 async function apiFetch<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    isFormData = false,
 ): Promise<T> {
     let token = getAccessToken();
     const headers: Record<string, string> = {
-        "Content-Type": "application/json",
+        ...(isFormData ? {} : {"Content-Type": "application/json"}),
         ...(options.headers as Record<string, string>),
     };
-
     if (token) headers["Authorization"] = `Bearer ${token}`;
-
-    let res = await fetch(`${BASE_URL}${endpoint}`, {
-        ...options,
-        headers,
-    });
-
+    let res = await fetch(`${BASE_URL}${endpoint}`, {...options, headers});
+    // ── Auto token refresh ──
     if (res.status === 401 && token) {
         const refresh = getRefreshToken();
-
         if (refresh) {
             if (!isRefreshing) {
                 isRefreshing = true;
@@ -80,189 +199,167 @@ async function apiFetch<T>(
                         headers: {"Content-Type": "application/json"},
                         body: JSON.stringify({refresh}),
                     });
-
-                    if (refreshRes.ok) {
-                        const data = await refreshRes.json();
-                        setTokens(data.access, refresh);
-                        isRefreshing = false;
-                        onRefreshed(data.access);
-                    } else {
-                        isRefreshing = false;
-                        clearTokens();
-                        if (typeof window !== "undefined") window.location.href = "/login";
-                        throw new Error("Sessiya muddati tugadi. Qayta login qiling.");
-                    }
-                } catch (err) {
-                    isRefreshing = false;
+                    if (!refreshRes.ok) throw new Error("Refresh failed");
+                    const {access} = await refreshRes.json();
+                    setTokens(access, refresh);
+                    onRefreshed(access);
+                } catch {
                     clearTokens();
-                    throw err;
+                    if (typeof window !== "undefined") window.location.href = "/login";
+                    throw new Error("Session tugadi. Qayta kiring.");
+                } finally {
+                    isRefreshing = false;
                 }
             }
-
-            return new Promise<T>((resolve) => {
-                subscribeTokenRefresh(async (newToken) => {
-                    headers["Authorization"] = `Bearer ${newToken}`;
-                    const retryRes = await fetch(`${BASE_URL}${endpoint}`, {
-                        ...options,
-                        headers,
-                    });
-                    resolve(retryRes.json());
-                });
-            });
+            // Birdan ko'p so'rov kutib tursa
+            token = await new Promise<string>(resolve =>
+                subscribeTokenRefresh(resolve)
+            );
+            headers["Authorization"] = `Bearer ${token}`;
+            res = await fetch(`${BASE_URL}${endpoint}`, {...options, headers});
         }
     }
-
     if (!res.ok) {
-        const error = await res.json().catch(() => ({detail: "Xato yuz berdi"}));
-        throw new Error(error.detail || JSON.stringify(error));
+        let errorMsg = `Xatolik: ${res.status}`;
+        try {
+            const errData = await res.json();
+            errorMsg = errData?.detail || errData?.message ||
+                Object.values(errData).flat().join(", ") || errorMsg;
+        } catch {
+        }
+        throw new Error(errorMsg);
     }
-
-    // 204 No Content holati uchun
-    if (res.status === 204) return {} as T;
-    return res.json();
+    // 204 No Content
+    if (res.status === 204) return null as T;
+    return res.json() as Promise<T>;
 }
 
-
-//  TYPES
-
-export interface SportType {
-    id: number;
-    name: string;
-    icon: string | null;
-}
-
-export interface VenueImage {
-    id: number;
-    image: string;
-    venue: number;
-}
-
-export interface Venue {
-    id: number;
-    owner: number;
-    sport: number;
-    sport_name?:string;
-    name: string;
-    address: string;
-    latitude: number;
-    longitude: number;
-    width: number;
-    length: number;
-    price: string;
-    description: string;
-    start_time: string;
-    end_time: string;
-    has_wifi: boolean;
-    has_parking: boolean;
-    images: VenueImage[];
-    created_at: string;
-    today_booked_hours: number;
-    weekly_booking_count: number;
-    rating: number;
-    review_count: number;
-}
-
-export interface Booking {
-    id: number;
-    user: number;
-    venue: number;
-    venue_name?: string;
-    venue_address?: string;
-    venue_price?: string;
-    date: string;
-    start_time: string;
-    end_time: string;
-    status: "pending" | "paid" | "canceled";
-    created_at: string;
-}
-
-export interface User {
-    id: number;
-    username: string;
-    email: string;
-    phone: string | null;
-    image: string | null;
-    role: "user" | "owner" | "admin";
-    first_name: string;
-    last_name: string;
-}
-
-export interface PaginatedResponse<T> {
-    count: number;
-    next: string | null;
-    previous: string | null;
-    results: T[];
-}
-
-
-//  AUTH
-
+// ════════════════════════════════════════
+//  AUTH API
+// ════════════════════════════════════════
 export const authAPI = {
-    login: (username: string, password: string) =>
-        apiFetch<{ access: string; refresh: string }>("/token", {
+    /** Login → JWT token olish */
+    login: (data: LoginPayload) =>
+        apiFetch<TokenPair>("/token", {
             method: "POST",
-            body: JSON.stringify({username, password}),
+            body: JSON.stringify(data),
         }),
-
-    register: (data: {
-        username: string;
-        password: string;
-        email?: string;
-        phone?: string;
-        first_name?: string;
-        last_name?: string;
-    }) =>
+    /** Ro'yxatdan o'tish */
+    register: (data: RegisterPayload) =>
         apiFetch<User>("/auth/register", {
             method: "POST",
             body: JSON.stringify(data),
         }),
-
-    refreshToken: (refresh: string) =>
+    /** Token yangilash */
+    refresh: (refresh: string) =>
         apiFetch<{ access: string }>("/token/refresh", {
             method: "POST",
             body: JSON.stringify({refresh}),
         }),
 };
-
-
-//  SPORTS
-
-export const sportsAPI = {
-    getAll: () => apiFetch<PaginatedResponse<SportType>>("/sports"),
+// ════════════════════════════════════════
+//  USER API
+// ════════════════════════════════════════
+export const userAPI = {
+    /** Profil ma'lumotlarini olish */
+    getMe: (id: number) =>
+        apiFetch<User>(`/users/${id}`),
+    /** Profilni yangilash */
+    update: (id: number, data: Partial<User> & { password?: string }) =>
+        apiFetch<User>(`/users/${id}`, {
+            method: "PATCH",
+            body: JSON.stringify(data),
+        }),
+    /** Profil rasmini yuklash */
+    updateImage: (id: number, file: File) => {
+        const form = new FormData();
+        form.append("image", file);
+        return apiFetch<User>(`/users/${id}`, {
+            method: "PATCH",
+            body: form,
+        }, true);
+    },
 };
-
-
-//  VENUES
-
+// ════════════════════════════════════════
+//  SPORT TYPES API
+// ════════════════════════════════════════
+export const sportTypesAPI = {
+    /** Barcha sport turlarini olish */
+    getAll: () =>
+        apiFetch<PaginatedResponse<SportType>>("/sport-types"),
+    /** Bitta sport turini olish */
+    getById: (id: number) =>
+        apiFetch<SportType>(`/sport-types/${id}`),
+};
+// ════════════════════════════════════════
+//  VENUES API
+// ════════════════════════════════════════
 export const venuesAPI = {
+    /** Barcha maydonlar (filter, search, ordering qo'llab-quvvatlaydi) */
     getAll: (params?: {
         sport?: number;
         search?: string;
         ordering?: string;
         page?: number;
+        min_price?: number;
+        max_price?: number;
+        has_wifi?: boolean;
+        has_parking?: boolean;
+        status?: string;
     }) => {
         const query = new URLSearchParams();
-        if (params?.sport) query.set("sport", String(params.sport));
-        if (params?.search) query.set("search", params.search);
-        if (params?.ordering) query.set("ordering", params.ordering);
-        if (params?.page) query.set("page", String(params.page));
+        if (params) {
+            Object.entries(params).forEach(([k, v]) => {
+                if (v !== undefined && v !== null && v !== "") {
+                    query.append(k, String(v));
+                }
+            });
+        }
         const qs = query.toString();
-        return apiFetch<PaginatedResponse<Venue>>(`/venues${qs ? "?" + qs : ""}`);
+        return apiFetch<PaginatedResponse<Venue>>(`/venues${qs ? `?${qs}` : ""}`);
     },
-
-    getOne: (id: number) => apiFetch<Venue>(`/venues/${id}`),
-
-
+    /** Bitta maydon */
+    getById: (id: number) =>
+        apiFetch<Venue>(`/venues/${id}`),
+    /** Yangi maydon yaratish (owner uchun) */
+    create: (data: FormData) =>
+        apiFetch<Venue>("/venues", {
+            method: "POST",
+            body: data,
+        }, true),
+    /** Maydonni yangilash */
+    update: (id: number, data: FormData | Partial<Venue>) => {
+        const isForm = data instanceof FormData;
+        return apiFetch<Venue>(`/venues/${id}`, {
+            method: "PATCH",
+            body: isForm ? data : JSON.stringify(data),
+        }, isForm);
+    },
+    /** Maydonni o'chirish */
+    delete: (id: number) =>
+        apiFetch<null>(`/venues/${id}`, {method: "DELETE"}),
+    /** Band vaqtlarini olish */
     getBookedSlots: (venueId: number, date: string) =>
-        apiFetch<{ booked: string[] }>(`/venues/${venueId}/booked-slots/?date=${date}`),
+        apiFetch<{ booked_slots: { start: string; end: string }[] }>(
+            `/venues/${venueId}/booked-slots?date=${date}`
+        ),
 };
-
-
-//  BOOKINGS
-
+// ════════════════════════════════════════
+//  BOOKINGS API
+// ════════════════════════════════════════
 export const bookingsAPI = {
-    getAll: () => apiFetch<PaginatedResponse<Booking>>("/bookings"),
-
+    /** Mening bronlarim */
+    getAll: (params?: { status?: string; page?: number }) => {
+        const query = new URLSearchParams();
+        if (params?.status) query.append("status", params.status);
+        if (params?.page) query.append("page", String(params.page));
+        const qs = query.toString();
+        return apiFetch<PaginatedResponse<Booking>>(`/bookings${qs ? `?${qs}` : ""}`);
+    },
+    /** Bitta bron */
+    getById: (id: number) =>
+        apiFetch<Booking>(`/bookings/${id}`),
+    /** Yangi bron yaratish */
     create: (data: {
         venue: number;
         date: string;
@@ -273,53 +370,71 @@ export const bookingsAPI = {
             method: "POST",
             body: JSON.stringify(data),
         }),
-
+    /** Bronni bekor qilish */
     cancel: (id: number) =>
         apiFetch<Booking>(`/bookings/${id}`, {
             method: "PATCH",
-            body: JSON.stringify({status: "canceled"}),
+            body: JSON.stringify({status: "cancelled"}),
         }),
 };
-
-
-//  REVIEWS
-
+// ════════════════════════════════════════
+//  REVIEWS API
+// ════════════════════════════════════════
 export const reviewsAPI = {
+    /** Maydon sharhlari */
     getByVenue: (venueId: number) =>
-        apiFetch<PaginatedResponse<{ id: number; rating: number; comment: string; user: number }>>
-        (`/reviews?venue=${venueId}`),
+        apiFetch<PaginatedResponse<Review>>(`/reviews?venue=${venueId}`),
+    /** Sharh qo'shish */
+    create: (data: { venue: number; rating: number; comment: string }) =>
+        apiFetch<Review>("/reviews", {
+            method: "POST",
+            body: JSON.stringify(data),
+        }),
+    /** Sharhni o'chirish */
+    delete: (id: number) =>
+        apiFetch<null>(`/reviews/${id}`, {method: "DELETE"}),
 };
-
-
-//  FAVORITES
-
+// ════════════════════════════════════════
+//  FAVORITES API
+// ════════════════════════════════════════
 export const favoritesAPI = {
-    getAll: () => apiFetch<PaginatedResponse<{ id: number; venue: number }>>("/favorites"),
-
+    /** Sevimlilarni olish */
+    getAll: () =>
+        apiFetch<PaginatedResponse<Favorite>>("/favorites"),
+    /** Sevimlilarga qo'shish */
     add: (venueId: number) =>
-        apiFetch<{ id: number; venue: number }>("/favorites", {
+        apiFetch<Favorite>("/favorites", {
             method: "POST",
             body: JSON.stringify({venue: venueId}),
         }),
-
+    /** Sevimlilardan o'chirish */
     remove: (id: number) =>
-        apiFetch(`/favorites/${id}`, {method: "DELETE"}),
+        apiFetch<null>(`/favorites/${id}`, {method: "DELETE"}),
+    /** Mavjudligini tekshirish */
+    check: async (venueId: number): Promise<number | null> => {
+        const res = await favoritesAPI.getAll();
+        const found = res.results.find(f => f.venue === venueId);
+        return found ? found.id : null;
+    },
 };
-
-
-export const userAPI = {
-    getMe: (id: number) => apiFetch<User>(`/users/${id}`),
-    update: (id: number, data: Partial<User>) =>
-        apiFetch<User>(`/users/${id}`, {
-            method: "PATCH",
+// ════════════════════════════════════════
+//  PAYMENTS API
+// ════════════════════════════════════════
+export const paymentsAPI = {
+    create: (data: { booking: number; method: string }) =>
+        apiFetch<Payment>("/payments", {
+            method: "POST",
             body: JSON.stringify(data),
         }),
+    getById: (id: number) =>
+        apiFetch<Payment>(`/payments/${id}`),
 };
+// ════════════════════════════════════════
+//  LEGACY EXPORTS (eski kodni buzmaslik)
+// ════════════════════════════════════════
+/** @deprecated authAPI.login ishlatilsin */
+export const loginUser = (data: LoginPayload) => authAPI.login(data);
+/** @deprecated authAPI.register ishlatilsin */
+export const registerUser = (data: RegisterPayload) => authAPI.register(data);
 
-
-export const getVenues = venuesAPI.getAll;
-export const getVenue = venuesAPI.getOne;
-export const createBooking = bookingsAPI.create;
-export const getBookings = bookingsAPI.getAll;
-export const cancelBooking = bookingsAPI.cancel;
-export const getBookedSlots = venuesAPI.getBookedSlots;
+export const sportsAPI = sportTypesAPI;

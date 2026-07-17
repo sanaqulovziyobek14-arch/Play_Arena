@@ -73,14 +73,16 @@ class VenueImageInline(TabularInline):
 
 @admin.register(Venue)
 class VenueAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'sport', 'address','price', 'start_time', 'end_time', 'size', 'status')
+    list_display = ('id', 'name', 'sport', 'address', 'price', 'start_time', 'end_time', 'size', 'status')
     list_display_links = ('id', 'name')
+    list_filter = ('status', 'sport')
+    actions = ['approve_venues', 'reject_venues']
     fieldsets = (
         ("Asosiy ma'lumotlar", {
-            'fields': ('name', 'owner', 'sport', 'price', 'description', 'start_time', 'end_time', 'status','address')
+            'fields': ('name', 'owner', 'sport', 'price', 'description', 'start_time', 'end_time', 'status', 'address')
         }),
         ("O'lcham va Yuza", {
-            'fields': ('size', )
+            'fields': ('size',)
         }),
         ("Qulayliklar (Ikonkalar uchun)", {
             'fields': ('has_wifi', 'has_parking', 'has_shower', 'has_lighting', 'has_dressing_room',
@@ -90,6 +92,16 @@ class VenueAdmin(admin.ModelAdmin):
     inlines = [
         VenueImageInline,
     ]
+
+    @admin.action(description="✅ Tanlangan maydonlarni TASDIQLASH")
+    def approve_venues(self, request, queryset):
+        updated = queryset.update(status=Venue.Role.APPROVED)
+        self.message_user(request, f"{updated} ta maydon tasdiqlandi va saytda ko'rinadigan bo'ldi.")
+
+    @admin.action(description="❌ Tanlangan maydonlarni RAD ETISH")
+    def reject_venues(self, request, queryset):
+        updated = queryset.update(status=Venue.Role.REJECTED)
+        self.message_user(request, f"{updated} ta maydon rad etildi va saytda ko'rinmaydi.")
 
 
 # =====================================================

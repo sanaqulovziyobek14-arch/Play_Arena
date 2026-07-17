@@ -20,7 +20,7 @@ export default function FavoritesPage() {
 
         const data = await Promise.all(
           favs.results.map((f) =>
-            venuesAPI.getOne(f.venue)
+            venuesAPI.getById(f.venue)
           )
         );
 

@@ -101,7 +101,7 @@ export default function MapSection() {
 
                     {/* LEFT: Yandex Map */}
                     <div style={{ width: "100%", height: "100%", position: "relative" }}>
-                        <YMaps query={{ lang: "uz_UZ" as any }}>
+                        <YMaps query={{ lang: "uz_UZ" as any, apikey:process.env.NEXT_PUBLIC_YANDEX_MAPS_API_KEY  }}>
                             <Map
                                 instanceRef={(ref: any) => { mapRef.current = ref; }}
                                 defaultState={{ center: TASHKENT_CENTER, zoom: 11 }}

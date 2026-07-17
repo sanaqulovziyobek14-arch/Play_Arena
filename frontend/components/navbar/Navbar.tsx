@@ -1,170 +1,248 @@
 "use client";
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { getAccessToken, getCurrentUserId, clearTokens, userAPI, favoritesAPI } from "@/services/api";
-import { useTheme } from "@/context/ThemeContext";
-import ThemeToggle from "@/components/ThemeToggle";
 
-const NAV_LINKS = [
-  { href: "/",        label: "Bosh sahifa" },
-  { href: "/venues",  label: "Katalog"     },
-  { href: "/bookings",label: "Bronlarim"   },
-];
+import {useEffect, useState} from "react";
+import Link from "next/link";
+import {usePathname} from "next/navigation";
+import {AnimatePresence, motion} from "framer-motion";
+import {
+    Bell,
+    Heart,
+    Menu,
+    Moon,
+    Sun,
+    User,
+    X,
+    Search,
+} from "lucide-react";
+
+import Logo from "./Logo";
+import NavLinks from "./NavLinks";
+
+import {
+    getAccessToken,
+    getCurrentUserId,
+    favoritesAPI,
+    userAPI,
+} from "@/services/api";
+
+import {useTheme} from "@/context/ThemeContext";
+import {translations, Language} from "@/constants/translations";
 
 export default function Navbar() {
-  const pathname = usePathname();
-  const { colors, theme } = useTheme();
-  const [scrolled, setScrolled] = useState(false);
-  const [isAuth, setIsAuth]     = useState(false);
-  const [initial, setInitial]   = useState("?");
-  const [favsCount, setFavsCount] = useState(0);
+    const pathname = usePathname();
 
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 10);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+    const {theme, toggleTheme} = useTheme();
 
-  useEffect(() => {
-    const token = getAccessToken();
-    setIsAuth(!!token);
-    if (token) {
-      const uid = getCurrentUserId();
-      if (uid) {
-        userAPI.getMe(uid)
-          .then(u => setInitial((u.first_name || u.username || "?").charAt(0).toUpperCase()))
-          .catch(() => {});
-      }
-      favoritesAPI.getAll().then(res => setFavsCount(res.count)).catch(() => {});
-    } else {
-      try {
-        const local = JSON.parse(localStorage.getItem("play_arena_favs") || "[]");
-        setFavsCount(local.length);
-      } catch {}
-      setInitial("?");
-    }
-  }, [pathname]);
+    const [language, setLanguage] = useState<Language>("uz");
 
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      setFavsCount(detail?.count ?? 0);
-    };
-    window.addEventListener("favs-updated", handler);
-    return () => window.removeEventListener("favs-updated", handler);
-  }, []);
+    const [mobileOpen, setMobileOpen] = useState(false);
 
-  return (
-    <nav style={{
-      position: "fixed", top: 0, left: 0, right: 0, zIndex: 50,
-      height: "64px",
-      background: scrolled
-        ? (theme === "dark" ? "rgba(0,0,0,0.92)" : "rgba(255,255,255,0.92)")
-        : (theme === "dark" ? "rgba(0,0,0,0.75)" : "rgba(255,255,255,0.75)"),
-      backdropFilter: "blur(16px)",
-      borderBottom: scrolled ? `1px solid ${colors.border}` : "1px solid transparent",
-      transition: "all .25s",
-      display: "flex", alignItems: "center",
-    }}>
-      <div style={{
-        maxWidth: "1440px", margin: "0 auto", padding: "0 32px",
-        width: "100%", display: "flex", alignItems: "center", gap: "0",
-      }}>
-        {/* Logo */}
-        <Link href="/" style={{
-          display: "flex", alignItems: "center", gap: "9px",
-          textDecoration: "none", marginRight: "40px",
-        }}>
-          <div style={{
-            width: "34px", height: "34px", borderRadius: "10px",
-            background: "linear-gradient(135deg,#22c55e,#16a34a)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            boxShadow: "0 0 16px rgba(34,197,94,0.3)",
-          }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
-            </svg>
-          </div>
-          <span style={{ fontSize: "17px", fontWeight: 800, color: colors.text, letterSpacing: "-0.02em" }}>
-            Play<span style={{ color: "#22c55e" }}>Arena</span>
-          </span>
-        </Link>
+    const [scrolled, setScrolled] = useState(false);
 
-        {/* Nav links */}
-        <div style={{ display: "flex", alignItems: "center", gap: "4px", flex: 1 }}>
-          {NAV_LINKS.map(({ href, label }) => {
-            const isActive = pathname === href;
-            return (
-              <Link key={href} href={href} style={{
-                display: "inline-flex", alignItems: "center",
-                padding: "6px 14px", borderRadius: "8px",
-                fontSize: "13px", fontWeight: 500, textDecoration: "none",
-                color: isActive ? colors.text : colors.textMuted,
-                background: isActive ? colors.bgCardHover : "transparent",
-                transition: "all .15s",
-              }}>
-                {label}
-              </Link>
-            );
-          })}
-        </div>
+    const [isAuth, setIsAuth] = useState(false);
 
-        {/* Right side */}
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+    const [favoriteCount, setFavoriteCount] = useState(0);
 
-          {/* Theme toggle */}
-          <ThemeToggle />
+    const [initial, setInitial] = useState("?");
 
-          {/* Favorites */}
-          <Link href="/profile" style={{
-            position: "relative",
-            width: "36px", height: "36px", borderRadius: "50%",
-            border: `1px solid ${colors.border}`,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            textDecoration: "none", color: favsCount > 0 ? "#ef4444" : colors.textMuted,
-            fontSize: "15px",
-          }}>
-            {favsCount > 0 ? "❤️" : "🤍"}
-            {favsCount > 0 && (
-              <span style={{
-                position: "absolute", top: "-4px", right: "-4px",
-                background: "#ef4444", color: "#fff",
-                fontSize: "9px", fontWeight: 800,
-                minWidth: "16px", height: "16px", borderRadius: "8px",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                padding: "0 3px", border: `2px solid ${colors.bg}`,
-              }}>{favsCount > 99 ? "99+" : favsCount}</span>
-            )}
-          </Link>
+    const t = translations[language];
 
-          {/* Auth */}
-          {isAuth ? (
-            <Link href="/profile" style={{
-              width: "36px", height: "36px", borderRadius: "50%",
-              background: "linear-gradient(135deg,#22c55e,#16a34a)",
-              border: "2px solid rgba(34,197,94,0.4)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              textDecoration: "none",
-              fontSize: "14px", fontWeight: 800, color: "#fff",
-              boxShadow: "0 0 12px rgba(34,197,94,0.25)",
-            }}>
-              {initial}
-            </Link>
-          ) : (
-            <Link href="/login" style={{
-              display: "inline-flex", alignItems: "center", justifyContent: "center",
-              padding: "8px 18px", borderRadius: "10px",
-              background: "linear-gradient(135deg,#22c55e,#16a34a)",
-              color: "#fff", fontSize: "13px", fontWeight: 700,
-              textDecoration: "none", letterSpacing: ".01em",
-              boxShadow: "0 4px 16px rgba(34,197,94,0.25)",
-            }}>
-              Kirish
-            </Link>
-          )}
-        </div>
-      </div>
-    </nav>
-  );
+    useEffect(() => {
+        const scroll = () => setScrolled(window.scrollY > 20);
+
+        window.addEventListener("scroll", scroll);
+
+        return () => window.removeEventListener("scroll", scroll);
+    }, []);
+
+    useEffect(() => {
+        const token = getAccessToken();
+
+        setIsAuth(Boolean(token));
+
+        if (!token) return;
+
+        const uid = getCurrentUserId();
+
+        if (uid) {
+            userAPI
+                .getMe(uid)
+                .then((user) =>
+                    setInitial(
+                        (user.first_name || user.username || "?")
+                            .charAt(0)
+                            .toUpperCase()
+                    )
+                )
+                .catch(() => {
+                });
+        }
+
+        favoritesAPI
+            .getAll()
+            .then((res) => setFavoriteCount(res.count))
+            .catch(() => {
+            });
+    }, [pathname]);
+
+    return (
+        <motion.header
+            initial={{y: -70}}
+            animate={{y: 0}}
+            className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+                scrolled
+                    ? "bg-[#08121dde]/90 backdrop-blur-xl border-b border-white/10"
+                    : "bg-transparent"
+            }`}
+        >
+            <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
+
+                <Logo/>
+
+                <NavLinks language={language}/>
+
+                <div className="flex items-center gap-3">
+
+                    <button
+                        className="hidden lg:flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition"
+                    >
+                        <Search size={19}/>
+                    </button>
+
+                    <button
+                        onClick={toggleTheme}
+                        className="hidden lg:flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition"
+                    >
+                        {theme === "dark" ? (
+                            <Sun size={18}/>
+                        ) : (
+                            <Moon size={18}/>
+                        )}
+                    </button>
+
+                    <button
+                        className="hidden lg:flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 relative">
+
+                        <Bell size={18}/>
+
+                        <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-green-500"></span>
+
+                    </button>
+
+                    <Link
+                        href="/favorites"
+                        className="hidden lg:flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 relative"
+                    >
+                        <Heart size={18}/>
+
+                        {favoriteCount > 0 && (
+                            <span
+                                className="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-green-500 px-1 text-[10px] font-bold text-black">
+                {favoriteCount}
+              </span>
+                        )}
+                    </Link>
+                    {/* Language */}
+                    <select
+                        value={language}
+                        onChange={(e) => setLanguage(e.target.value as Language)}
+                        className="hidden lg:block rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none transition hover:bg-white/10"
+                    >
+                        <option value="uz" className="bg-[#08121d]">
+                            🇺🇿 UZ
+                        </option>
+                        <option value="ru" className="bg-[#08121d]">
+                            🇷🇺 RU
+                        </option>
+                        <option value="en" className="bg-[#08121d]">
+                            🇬🇧 EN
+                        </option>
+                    </select>
+
+                    {isAuth ? (
+                        <Link
+                            href="/profile"
+                            className="hidden lg:flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-r from-green-400 to-emerald-500 font-bold text-black shadow-lg shadow-green-500/20"
+                        >
+                            {initial}
+                        </Link>
+                    ) : (
+                        <Link
+                            href="/login"
+                            className="hidden lg:flex items-center rounded-xl bg-gradient-to-r from-green-400 to-emerald-500 px-5 py-2 font-semibold text-black transition hover:scale-105"
+                        >
+                            {t.login}
+                        </Link>
+                    )}
+
+                    {/* Mobile */}
+                    <button
+                        onClick={() => setMobileOpen(!mobileOpen)}
+                        className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 lg:hidden"
+                    >
+                        {mobileOpen ? (
+                            <X size={22}/>
+                        ) : (
+                            <Menu size={22}/>
+                        )}
+                    </button>
+
+                </div>
+            </div>
+
+            <AnimatePresence>
+                {mobileOpen && (
+                    <motion.div
+                        initial={{opacity: 0, y: -25}}
+                        animate={{opacity: 1, y: 0}}
+                        exit={{opacity: 0, y: -25}}
+                        transition={{duration: .25}}
+                        className="border-t border-white/10 bg-[#08121d] lg:hidden"
+                    >
+                        <div className="flex flex-col gap-2 p-6">
+
+                            <NavLinks
+                                language={language}
+                                mobile
+                                onItemClick={() => setMobileOpen(false)}
+                            />
+
+                            <Link
+                                href="/favorites"
+                                onClick={() => setMobileOpen(false)}
+                                className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3"
+                            >
+                                <span>❤️ Sevimlilar</span>
+
+                                <span className="rounded-full bg-green-500 px-2 py-1 text-xs font-bold text-black">
+                  {favoriteCount}
+                </span>
+                            </Link>
+
+                            {!isAuth ? (
+                                <Link
+                                    href="/login"
+                                    onClick={() => setMobileOpen(false)}
+                                    className="mt-2 flex items-center justify-center rounded-xl bg-gradient-to-r from-green-400 to-emerald-500 py-3 font-bold text-black"
+                                >
+                                    {t.login}
+                                </Link>
+                            ) : (
+                                <Link
+                                    href="/profile"
+                                    onClick={() => setMobileOpen(false)}
+                                    className="mt-2 flex items-center justify-center rounded-xl border border-green-500 py-3 font-semibold text-green-400"
+                                >
+                                    <User className="mr-2 h-5 w-5"/>
+                                    Profil
+                                </Link>
+                            )}
+
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+        </motion.header>
+    );
 }

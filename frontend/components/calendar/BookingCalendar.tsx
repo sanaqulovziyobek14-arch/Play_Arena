@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { createBooking } from "@/services/api";
-
+import { bookingsAPI } from "@/services/api";
 export default function BookingCalendar({ venueId }: { venueId: number }) {
     const [date, setDate] = useState("");
     const [startTime, setStartTime] = useState("");
@@ -13,7 +12,7 @@ export default function BookingCalendar({ venueId }: { venueId: number }) {
         setLoading(true);
 
         try {
-            await createBooking({
+            await bookingsAPI.create({
                 venue: venueId,
                 date,
                 start_time: startTime,

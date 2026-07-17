@@ -98,7 +98,7 @@ class VenueCreateSerializer(ModelSerializer):
         images_data = validated_data.pop('uploaded_images')
         user = self.context['request'].user
         with transaction.atomic():
-            venue = Venue.objects.create(owner=user, status=Venue.Status.PENDING, **validated_data)
+            venue = Venue.objects.create(owner=user, status=Venue.Role.PENDING, **validated_data)
             venue_images = [
                 VenueImage(venue=venue, image=image_data) for image_data in images_data
             ]

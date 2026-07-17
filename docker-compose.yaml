@@ -5,6 +5,8 @@ services:
       dockerfile: Dockerfile
     env_file: backend/.env
     volumes:
+      - ./backend:/app
+      - /app/.venv
       - media:/app/media
     ports:
       - "8000:8000"

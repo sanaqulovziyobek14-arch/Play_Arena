@@ -98,8 +98,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   // Flash oldini olish — mount bo'lguncha hech narsa render qilmaymiz
   if (!mounted) {
-    return <div style={{ background: "#000", minHeight: "100vh" }} />;
-  }
+  return <body style={{ background: "#000", minHeight: "100vh" }} />;
+}
 
   return (
     <ThemeContext.Provider value={{ theme, colors, toggleTheme, setTheme }}>
