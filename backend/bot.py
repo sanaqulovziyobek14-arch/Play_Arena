@@ -9,6 +9,7 @@ import datetime
 import logging
 import os
 import sys
+import re
 from pathlib import Path
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -42,6 +43,15 @@ from apps.models import Booking, Venue, SportType, VenueImage  # noqa: E402
 from django.contrib.auth import get_user_model  # noqa: E402
 
 User = get_user_model()
+
+TIME_PATTERN = re.compile(r"^\d{2}:\d{2}$")
+def is_valid_time(t: str) -> bool:
+    """HH:MM formatini tekshiradi"""
+    if not TIME_PATTERN.match(t):
+        return False
+    h, m = map(int, t.split(":"))
+    return 0 <= h <= 23 and 0 <= m <= 59
+
 
 load_dotenv()
 
@@ -440,24 +450,29 @@ async def process_venue_description(message: Message, state: FSMContext):
     await state.set_state(AddVenueState.start_time)
 
 
+
 @dp.message(AddVenueState.start_time, F.text)
 async def process_venue_start_time(message: Message, state: FSMContext):
-    await state.update_data(start_time=message.text.strip())
-
+    time_val = message.text.strip()
+    if not is_valid_time(time_val):
+        await message.answer("⚠️ Noto'g'ri format! Vaqtni HH:MM shaklida kiriting (masalan: 08:00):")
+        return
+    await state.update_data(start_time=time_val)
     times = ["18:00", "19:00", "20:00", "21:00", "22:00", "23:00", "00:00", "01:00", "02:00"]
     builder = ReplyKeyboardBuilder()
     for t in times:
         builder.button(text=t)
     builder.adjust(4)
-
     await message.answer("⌛ **6-qadam:** Ish tugash vaqtini tanlang yoki kiriting (masalan 22:00):",
                          reply_markup=builder.as_markup(resize_keyboard=True))
     await state.set_state(AddVenueState.end_time)
-
-
 @dp.message(AddVenueState.end_time, F.text)
 async def process_venue_end_time(message: Message, state: FSMContext):
-    await state.update_data(end_time=message.text.strip())
+    time_val = message.text.strip()
+    if not is_valid_time(time_val):
+        await message.answer("⚠️ Noto'g'ri format! Vaqtni HH:MM shaklida kiriting (masalan: 22:00):")
+        return
+    await state.update_data(end_time=time_val)
 
     builder = ReplyKeyboardBuilder()
     builder.button(text="📍 Hozirgi joylashuvimni yuborish", request_location=True)
@@ -496,12 +511,12 @@ async def process_venue_location_obj(message: Message, state: FSMContext):
 @dp.message(AddVenueState.location, F.text)
 async def process_venue_location_text(message: Message, state: FSMContext):
     text_val = message.text.strip()
-
-    # Standart Toshkent koordinatalarini default holatga o'rnatamiz, agar foydalanuvchi matn yozgan bo'lsa
-    await state.update_data(latitude=41.3111, longitude=69.2797, address=text_val)
-
+    # Matn kiritilganda koordinatalarni None qoldiramiz
+    # (Nominatim API orqali keyinchalik aniqlanishi mumkin, yoki admin panel orqali to'ldiriladi)
+    await state.update_data(latitude=None, longitude=None, address=text_val)
     await message.answer(
         f"🗺️ **Kiritilgan manzil:**\n`{text_val}`\n\n"
+        f"⚠️ _Aniq xarita koordinatalari kiritilmadi. Admin tasdiqlashda qo'lda belgilanadi._\n\n"
         f"📸 **8-qadam:** Maydon rasmini yuboring (Faqat rasm formatida):",
         parse_mode="Markdown", reply_markup=ReplyKeyboardRemove()
     )

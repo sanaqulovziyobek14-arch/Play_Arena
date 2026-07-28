@@ -206,18 +206,6 @@ class BookingModelSerializer(ModelSerializer):
             raise ValidationError(
                 f"Maydon faqat {venue.start_time} — {venue.end_time} oralig'ida ishlaydi."
             )
-
-        overlapping = Booking.objects.filter(
-            venue=venue, date=date,
-            status__in=["pending", "paid"],
-            start_time__lt=end_time,
-            end_time__gt=start_time,
-        )
-        if self.instance:
-            overlapping = overlapping.exclude(pk=self.instance.pk)
-        if overlapping.exists():
-            raise ValidationError("Bu vaqt oralig'i allaqachon band!")
-
         return data
 
 
