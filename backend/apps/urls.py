@@ -22,7 +22,7 @@ router.register("favorites", FavoriteViewSet, basename="favorites")
 router.register("sport-types", SportTypeViewSet, basename="sport-types")
 
 urlpatterns = [
-                  path("venues/<int:venue_id>/booked-slots/", VenueBookedSlotsAPIView.as_view()),
+                  path("venues/<int:venue_id>/booked-slots", VenueBookedSlotsAPIView.as_view()),
                   path("venues/my-stats", MyVenueStatsAPIView.as_view(), name="venue-my-stats"),
                   path("auth/register", UserCreateApiView.as_view()),
                   path("token", CustomTokenObtainPairView.as_view(), name="token_obtain_pair"),

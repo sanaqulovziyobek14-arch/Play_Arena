@@ -18,10 +18,10 @@ User = get_user_model()
 
 class UserModelSerializer(ModelSerializer):
     password = CharField(write_only=True, required=False, style={'input_type': 'password'})
-
     class Meta:
         model = User
         fields = ("id", "username", "password", "email", "phone", "first_name", "last_name", "role", "image")
+        read_only_fields = ("role",)
         extra_kwargs = {
             "email": {"required": False},
             "username": {"min_length": 4},
@@ -194,11 +194,16 @@ class BookingModelSerializer(ModelSerializer):
         return round(obj.venue.price * hours, 2)
 
     def validate(self, data):
-        venue      = data.get("venue")
-        date       = data.get("date")
+        venue = data.get("venue")
+        date = data.get("date")
         start_time = data.get("start_time")
-        end_time   = data.get("end_time")
-
+        end_time = data.get("end_time")
+        today = timezone.now().date()
+        current_time = timezone.now().time()
+        if date < today:
+            raise ValidationError("O'tib ketgan sanaga bron qilib bo'lmaydi.")
+        if date == today and start_time < current_time:
+            raise ValidationError("Bugungi kun uchun o'tib ketgan soatga bron qilib bo'lmaydi.")
         if start_time >= end_time:
             raise ValidationError("Tugash vaqti boshlanish vaqtidan katta bo'lishi shart.")
 
@@ -206,18 +211,6 @@ class BookingModelSerializer(ModelSerializer):
             raise ValidationError(
                 f"Maydon faqat {venue.start_time} — {venue.end_time} oralig'ida ishlaydi."
             )
-
-        overlapping = Booking.objects.filter(
-            venue=venue, date=date,
-            status__in=["pending", "paid"],
-            start_time__lt=end_time,
-            end_time__gt=start_time,
-        )
-        if self.instance:
-            overlapping = overlapping.exclude(pk=self.instance.pk)
-        if overlapping.exists():
-            raise ValidationError("Bu vaqt oralig'i allaqachon band!")
-
         return data
 
 

@@ -38,34 +38,27 @@ function getPageButtons(current: number, total: number): (number | "...")[] {
 }
 
 export default function VenueSection() {
-    const [allVenues, setAllVenues] = useState<Venue[]>([]);
+    const [allVenues, setVenues] = useState<Venue[]>([]);
+    const [totalCount, setTotalCount] = useState<number>(0);
     const [favMap, setFavMap] = useState<Record<number, number>>({});
     const router = useRouter();
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
 
     useEffect(() => {
-        let cancelled = false;
-
-        async function fetchAllVenues() {
-            let collected: Venue[] = [];
-            let pageNum = 1;
-            // Backend sahifalab qaytarsa ham, barcha arenalarni to'plab olamiz
-            while (true) {
-                const res = await venuesAPI.getAll({page: pageNum});
-                collected = collected.concat(res.results);
-                if (!res.next) break;
-                pageNum++;
+    let cancelled = false;
+    setLoading(true);
+    venuesAPI.getAll({page})
+        .then(res => {
+            if (!cancelled) {
+                setVenues(res.results || []);
+                setTotalCount(res.count || 0);
             }
-            if (!cancelled) setAllVenues(collected);
-        }
-
-        fetchAllVenues()
-            .catch(console.error)
-            .finally(() => { if (!cancelled) setLoading(false); });
-
-        return () => { cancelled = true; };
-    }, []);
+        })
+        .catch(console.error)
+        .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+}, [page]);
 
     useEffect(() => {
         if (!getAccessToken()) return;

@@ -84,17 +84,14 @@ function PaymentModal({
     const [method, setMethod] = useState<"click" | "payme" | null>(null);
     const [payError, setPayError] = useState("");
 
-    useEffect(() => {
-        if (paid || expired) return;
-        if (seconds <= 0) {
-            setExpired(true);
-            bookingsAPI.cancel(bookingId).catch(() => {
-            });
-            return;
-        }
-        const t = setTimeout(() => setSeconds(s => s - 1), 1000);
-        return () => clearTimeout(t);
-    }, [seconds, paid, expired, bookingId]);
+    const handleClose = async () => {
+    if (paid || paying) return;
+    try {
+        await bookingsAPI.cancel(bookingId);
+    } catch {
+    }
+    onClose();
+};
 
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -256,14 +253,13 @@ export default function VenueDetailPage(props: PageProps) {
 
     // Promise-larni use() orqali unwrap qilamiz. Bu xatolikni butunlay tuzatadi!
     const resolvedParams = use(props.params);
-    // @ts-ignore
-    const resolvedSearchParams = use(props.searchParams);
+    const resolvedSearchParams = use(props.searchParams as Promise<Record<string, string | string[] | undefined>>);
 
     const rawId = resolvedParams?.id;
     const idString = Array.isArray(rawId) ? rawId[0] : typeof rawId === "string" ? rawId : "";
     const cleanId = parseInt(idString.replace(/\D/g, ""), 10) || null;
 
-    const [venue, setVenue] = useState<any | null>(null);
+    const [venue, setVenue] = useState<Venue | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [dates] = useState(() => generateDates(7));
@@ -423,7 +419,7 @@ export default function VenueDetailPage(props: PageProps) {
         style={{color: "#fff", textAlign: "center", marginTop: "100px"}}>{error}</p></div>;
 
     const price = Number(venue.price);
-    const currentSportName = venue?.sport_name || venue?.sport?.name || "";
+    const currentSportName = venue?.sport_name || venue?.sport_name || "";
 
     return (
         <main style={{background: "#000", minHeight: "100vh", color: "#fff"}}>

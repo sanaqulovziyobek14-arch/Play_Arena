@@ -4,8 +4,8 @@
 // ── Base URL: development da localhost, Docker'da container nomi
 const BASE_URL =
     typeof window !== "undefined"
-        ? "http://localhost:8000/api/v1"       // Brauzer uchun aniq manzil
-        : "http://backend_service:8000/api/v1"; // Docker container ichi uchun
+        ? (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1")
+        : (process.env.NEXT_PUBLIC_API_URL_SERVER || "http://backend_service:8000/api/v1");
 // ════════════════════════════════════════
 //  TYPE DEFINITIONS  (backendga mos)
 // ════════════════════════════════════════
@@ -65,7 +65,7 @@ export interface Booking {
     start_time: string;      // "10:00:00"
     end_time: string;        // "12:00:00"
     total_price: string;
-    status: "pending" | "confirmed" | "canceled";
+    status: "pending" | "paid" | "canceled";
     created_at: string;
 }
 
