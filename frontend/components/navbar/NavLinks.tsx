@@ -22,34 +22,19 @@ export default function NavLinks({
   const t = translations[language];
 
   const links = [
-    {
-      href: "/",
-      label: t.home,
-    },
-    {
-      href: "/venues",
-      label: t.venues,
-    },
-    {
-      href: "/sports",
-      label: t.sports,
-    },
-    {
-      href: "/bookings",
-      label: t.bookings,
-    },
-    {
-      href: "/about",
-      label: t.about,
-    },
+    { href: "/", label: t.home },
+    { href: "/venues", label: t.venues },
+    { href: "/sport-types", label: t.sports },
+    { href: "/bookings", label: t.bookings },
+    { href: "/about", label: t.about },
   ];
 
   return (
     <nav
       className={clsx(
         mobile
-          ? "flex flex-col gap-4"
-          : "hidden lg:flex items-center gap-8"
+          ? "flex flex-col gap-2"
+          : "hidden lg:flex items-center gap-7"
       )}
     >
       {links.map((item) => {
@@ -60,29 +45,46 @@ export default function NavLinks({
             key={item.href}
             href={item.href}
             onClick={onItemClick}
-            className="relative group"
+            className={clsx(
+              "relative group",
+              mobile &&
+                "flex items-center rounded-xl border border-white/10 bg-white/5 px-4 py-3"
+            )}
           >
-            <motion.span
-              whileHover={{ y: -2 }}
-              transition={{ duration: 0.2 }}
-              className={clsx(
-                "text-[15px] font-semibold transition-colors duration-300",
-                active
-                  ? "text-green-400"
-                  : "text-gray-300 group-hover:text-white"
-              )}
-            >
-              {item.label}
-            </motion.span>
+            {mobile ? (
+              <span
+                className={clsx(
+                  "text-[15px] font-semibold",
+                  active ? "text-green-400" : "text-gray-200"
+                )}
+              >
+                {item.label}
+              </span>
+            ) : (
+              <motion.span
+                whileHover={{ y: -1 }}
+                transition={{ duration: 0.2 }}
+                className={clsx(
+                  "text-sm font-semibold transition-colors duration-300",
+                  active
+                    ? "text-green-400"
+                    : "text-gray-300 group-hover:text-white"
+                )}
+              >
+                {item.label}
+              </motion.span>
+            )}
 
-            <span
-              className={clsx(
-                "absolute left-0 -bottom-2 h-[2px] rounded-full bg-green-500 transition-all duration-300",
-                active
-                  ? "w-full"
-                  : "w-0 group-hover:w-full"
-              )}
-            />
+            {!mobile && (
+              <span
+                className={clsx(
+                  "absolute left-0 -bottom-1.5 h-[2px] rounded-full bg-green-500 transition-all duration-300",
+                  active
+                    ? "w-full"
+                    : "w-0 group-hover:w-full"
+                )}
+              />
+            )}
           </Link>
         );
       })}

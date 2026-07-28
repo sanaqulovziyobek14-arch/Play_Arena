@@ -13,6 +13,7 @@ import {
     User,
     X,
     Search,
+    BarChart3,
 } from "lucide-react";
 
 import Logo from "./Logo";
@@ -95,7 +96,7 @@ export default function Navbar() {
                     : "bg-transparent"
             }`}
         >
-            <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
+            <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
 
                 <Logo/>
 
@@ -104,14 +105,14 @@ export default function Navbar() {
                 <div className="flex items-center gap-3">
 
                     <button
-                        className="hidden lg:flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition"
+                        className="hidden lg:flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition"
                     >
                         <Search size={19}/>
                     </button>
 
                     <button
                         onClick={toggleTheme}
-                        className="hidden lg:flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition"
+                        className="hidden lg:flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition"
                     >
                         {theme === "dark" ? (
                             <Sun size={18}/>
@@ -121,7 +122,7 @@ export default function Navbar() {
                     </button>
 
                     <button
-                        className="hidden lg:flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 relative">
+                        className="hidden lg:flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 relative">
 
                         <Bell size={18}/>
 
@@ -130,8 +131,16 @@ export default function Navbar() {
                     </button>
 
                     <Link
+                        href="/stats"
+                        title="Statistikalarim"
+                        className="hidden lg:flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-green-500/30 transition group"
+                    >
+                        <BarChart3 size={18} className="text-gray-300 group-hover:text-green-400 transition"/>
+                    </Link>
+
+                    <Link
                         href="/favorites"
-                        className="hidden lg:flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 relative"
+                        className="hidden lg:flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 relative"
                     >
                         <Heart size={18}/>
 
@@ -162,7 +171,7 @@ export default function Navbar() {
                     {isAuth ? (
                         <Link
                             href="/profile"
-                            className="hidden lg:flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-r from-green-400 to-emerald-500 font-bold text-black shadow-lg shadow-green-500/20"
+                            className="hidden lg:flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-r from-green-400 to-emerald-500 font-bold text-black shadow-lg shadow-green-500/20"
                         >
                             {initial}
                         </Link>
@@ -178,7 +187,7 @@ export default function Navbar() {
                     {/* Mobile */}
                     <button
                         onClick={() => setMobileOpen(!mobileOpen)}
-                        className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 lg:hidden"
+                        className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 lg:hidden"
                     >
                         {mobileOpen ? (
                             <X size={22}/>
@@ -206,6 +215,17 @@ export default function Navbar() {
                                 mobile
                                 onItemClick={() => setMobileOpen(false)}
                             />
+
+                            <Link
+                                href="/stats"
+                                onClick={() => setMobileOpen(false)}
+                                className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3"
+                            >
+                                <span className="flex items-center gap-3">
+                                    <BarChart3 size={18} className="text-green-400"/>
+                                    Statistikalarim
+                                </span>
+                            </Link>
 
                             <Link
                                 href="/favorites"

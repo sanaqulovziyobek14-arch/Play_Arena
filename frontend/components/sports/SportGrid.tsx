@@ -34,7 +34,7 @@ export default function SportGrid() {
   };
 
   return (
-    <section style={{ padding: "48px 0", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+    <section id="sport-turlari" style={{ padding: "48px 0", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
       <div style={{ maxWidth: "1440px", margin: "0 auto", padding: "0 32px" }}>
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>

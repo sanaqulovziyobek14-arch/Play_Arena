@@ -2,9 +2,10 @@
 
 import {useState, useEffect, useCallback} from "react";
 import Link from "next/link";
+import {useRouter} from "next/navigation";
 import Navbar from "@/components/navbar/Navbar";
 import Footer from "@/components/footer/Footer";
-import {venuesAPI, sportsAPI, type Venue, type SportType} from "@/services/api";
+import {venuesAPI, sportsAPI, favoritesAPI, getAccessToken, type Venue, type SportType} from "@/services/api";
 
 const SportIcon = ({name, className = "w-4 h-4 text-white"}: { name: string; className?: string }) => {
     const n = name ? name.toLowerCase().trim() : "";
@@ -102,7 +103,8 @@ export default function VenuesClient() {
     const [sports, setSports] = useState<SportType[]>([]);
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(true);
-    const [favs, setFavs] = useState<number[]>([]);
+    const [favMap, setFavMap] = useState<Record<number, number>>({});
+    const router = useRouter();
 
     // Filters
     const [activeSport, setActiveSport] = useState<number | null>(null);
@@ -166,10 +168,47 @@ export default function VenuesClient() {
         fetchVenues();
     }, [fetchVenues]);
 
-    const toggleFav = (id: number, e: React.MouseEvent) => {
+    useEffect(() => {
+        if (!getAccessToken()) return;
+        favoritesAPI.getAll()
+            .then(res => {
+                const map: Record<number, number> = {};
+                res.results.forEach(f => { map[f.venue] = f.id; });
+                setFavMap(map);
+            })
+            .catch(() => {});
+    }, []);
+
+    const toggleFav = async (venueId: number, e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        setFavs(prev => prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]);
+
+        if (!getAccessToken()) {
+            router.push("/login?callback=/venues");
+            return;
+        }
+
+        const existingFavId = favMap[venueId];
+
+        if (existingFavId) {
+            setFavMap(prev => {
+                const next = {...prev};
+                delete next[venueId];
+                return next;
+            });
+            try {
+                await favoritesAPI.remove(existingFavId);
+            } catch {
+                setFavMap(prev => ({...prev, [venueId]: existingFavId}));
+            }
+        } else {
+            try {
+                const created = await favoritesAPI.add(venueId);
+                setFavMap(prev => ({...prev, [venueId]: created.id}));
+            } catch {
+                // Sevimlilarga qo'sha olmadik
+            }
+        }
     };
 
     const clearFilters = () => {
@@ -532,7 +571,7 @@ export default function VenuesClient() {
                         }}>
                             {venues.map(venue => {
                                 const style = getStyle(venue.sport_name);
-                                const isFav = favs.includes(venue.id);
+                                const isFav = Boolean(favMap[venue.id]);
                                 const rating = (venue as any).rating && Number((venue as any).rating) > 0 ? Number((venue as any).rating) : 0;
                                 return (
                                     <Link key={venue.id} href={`/venues/${venue.id}`}

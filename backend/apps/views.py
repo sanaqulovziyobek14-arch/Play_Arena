@@ -1,13 +1,14 @@
 import datetime
 
 from django.contrib.auth import get_user_model
+from django.db import transaction
 from django.db.models import Avg, Count, Q, Sum
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import permissions
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.generics import CreateAPIView
 from rest_framework.mixins import CreateModelMixin, RetrieveModelMixin, UpdateModelMixin, ListModelMixin
@@ -221,21 +222,7 @@ class VenueViewSet(ModelViewSet):
         return [IsAuthenticated(), IsVenueOwnerOrAdmin()]
 
     def perform_create(self, serializer):
-        # Har qanday tizimga kirgan foydalanuvchi maydon qo'shishi mumkin.
-        # Yangi maydon avtomatik 'pending' holatda saqlanadi (VenueCreateSerializer.create() ichida)
-        # va admin tasdiqlamaguncha saytda ko'rinmaydi.
         serializer.save()
-
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-
-        if not serializer.is_valid():
-            print(serializer.errors)
-            return Response(serializer.errors, status=400)
-
-        self.perform_create(serializer)
-
-        return Response(serializer.data, status=201)
 
     @extend_schema(summary="Maydonlar ro'yxati", description="Filtr: sport, has_wifi, has_parking, search, ordering")
     def list(self, request, *args, **kwargs):
@@ -367,7 +354,28 @@ class BookingViewSet(CreateModelMixin, RetrieveModelMixin,
     def perform_create(self, serializer):
         if self.request.user.is_owner:
             raise PermissionDenied("Maydon egalari bron qila olmaydi.")
-        serializer.save(user=self.request.user)
+
+        venue = serializer.validated_data["venue"]
+        date = serializer.validated_data["date"]
+        start_time = serializer.validated_data["start_time"]
+        end_time = serializer.validated_data["end_time"]
+
+        with transaction.atomic():
+            # Shu maydonga tegishli qatorni "qulflaymiz" — shu venue uchun
+            # bir vaqtning o'zida faqat bitta so'rov bron yaratishi mumkin bo'ladi,
+            # qolganlari navbatda kutadi.
+            Venue.objects.select_for_update().get(pk=venue.pk)
+
+            overlapping = Booking.objects.select_for_update().filter(
+                venue=venue, date=date,
+                status__in=["pending", "paid"],
+                start_time__lt=end_time,
+                end_time__gt=start_time,
+            )
+            if overlapping.exists():
+                raise ValidationError("Bu vaqt oralig'i allaqachon band!")
+
+            serializer.save(user=self.request.user)
 
     @extend_schema(summary="Bronlarim ro'yxati")
     def list(self, request, *args, **kwargs):
@@ -417,7 +425,7 @@ class VenueBookedSlotsAPIView(APIView):
 
         booked = Booking.objects.filter(
             venue_id=venue_id, date=valid_date
-        ).values("start_time", "end_time")
+        ).exclude(status=Booking.Status.CANCELED).values("start_time", "end_time")
 
         return Response({"booked": [
             {"start": str(b["start_time"]), "end": str(b["end_time"])}

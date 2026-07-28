@@ -3,14 +3,14 @@ const LINKS = {
   "Platforma": [
     { label: "Bosh sahifa",    href: "/" },
     { label: "Maydonlar",      href: "/venues" },
-    { label: "Sport turlari",  href: "/venues" },
+    { label: "Sport turlari",  href: "/#sport-turlari" },
     { label: "Bronlarim",      href: "/bookings" },
   ],
   "Kompaniya": [
-    { label: "Biz haqimizda",  href: "#" },
+    { label: "Biz haqimizda",  href: "/about" },
     { label: "Yangiliklar",    href: "#" },
     { label: "Hamkorlik",      href: "#" },
-    { label: "Bog'lanish",     href: "#" },
+    { label: "Bog'lanish",     href: "/about" },
   ],
   "Yordam": [
     { label: "Qo'llab-quvvatlash", href: "#" },
@@ -22,7 +22,7 @@ const LINKS = {
 const SOCIALS = [
   { icon: "📘", label: "Facebook",  href: "#" },
   { icon: "📸", label: "Instagram", href: "#" },
-  { icon: "📱", label: "Telegram",  href: "#" },
+  { icon: "📱", label: "Telegram",  href: "https://t.me/PlayArena_bronqilsih_bot" },
   { icon: "▶️", label: "YouTube",   href: "#" },
 ];
 export default function Footer() {
@@ -75,7 +75,7 @@ export default function Footer() {
             {/* Socials */}
             <div style={{ display: "flex", gap: "8px" }}>
               {SOCIALS.map(s => (
-                <a key={s.label} href={s.href} aria-label={s.label} style={{
+                <a key={s.label} href={s.href} aria-label={s.label} target="_blank" rel="noopener noreferrer" style={{
                   width: "36px", height: "36px", borderRadius: "8px",
                   background: "rgba(74,222,128,0.08)",
                   border: "1px solid rgba(74,222,128,0.15)",

@@ -1,7 +1,8 @@
 "use client";
 import {useState, useEffect} from "react";
 import Link from "next/link";
-import {venuesAPI, type Venue} from "@/services/api";
+import {useRouter} from "next/navigation";
+import {venuesAPI, favoritesAPI, getAccessToken, type Venue} from "@/services/api";
 
 const SPORT_STYLE: Record<string, { emoji: string; bg: string }> = {
     "mini futbol": {emoji: "⚽", bg: "linear-gradient(145deg,#082808,#0f3c0f)"},
@@ -15,11 +16,11 @@ const SPORT_STYLE: Record<string, { emoji: string; bg: string }> = {
 const DEFAULT = {emoji: "🏟️", bg: "linear-gradient(145deg,#111,#1a1a1a)"};
 const getStyle = (name = "") => SPORT_STYLE[name.toLowerCase()] || DEFAULT;
 
-const PER_PAGE = 6;
+const PER_PAGE = 5;
 
 /** Sahifalash tugmalari uchun oyna hisoblaydi: masalan [1,2,3,"...",8,9,10] */
 function getPageButtons(current: number, total: number): (number | "...")[] {
-    if (total <= 6) return Array.from({length: total}, (_, i) => i + 1);
+    if (total <= 5) return Array.from({length: total}, (_, i) => i + 1);
 
     const head = [current, current + 1, current + 2].filter(p => p >= 1 && p <= total);
     const tail = [total - 2, total - 1, total].filter(p => p >= 1 && p <= total);
@@ -38,7 +39,8 @@ function getPageButtons(current: number, total: number): (number | "...")[] {
 
 export default function VenueSection() {
     const [allVenues, setAllVenues] = useState<Venue[]>([]);
-    const [favs, setFavs] = useState<number[]>([]);
+    const [favMap, setFavMap] = useState<Record<number, number>>({});
+    const router = useRouter();
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
 
@@ -65,6 +67,17 @@ export default function VenueSection() {
         return () => { cancelled = true; };
     }, []);
 
+    useEffect(() => {
+        if (!getAccessToken()) return;
+        favoritesAPI.getAll()
+            .then(res => {
+                const map: Record<number, number> = {};
+                res.results.forEach(f => { map[f.venue] = f.id; });
+                setFavMap(map);
+            })
+            .catch(() => {});
+    }, []);
+
     const totalPages = Math.max(1, Math.ceil(allVenues.length / PER_PAGE));
     const venues = allVenues.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
@@ -75,10 +88,36 @@ export default function VenueSection() {
         document.getElementById("venues-section")?.scrollIntoView({behavior: "smooth", block: "start"});
     };
 
-    const toggleFav = (id: number, e: React.MouseEvent) => {
+    const toggleFav = async (venueId: number, e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        setFavs(prev => prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]);
+
+        if (!getAccessToken()) {
+            router.push("/login?callback=/");
+            return;
+        }
+
+        const existingFavId = favMap[venueId];
+
+        if (existingFavId) {
+            setFavMap(prev => {
+                const next = {...prev};
+                delete next[venueId];
+                return next;
+            });
+            try {
+                await favoritesAPI.remove(existingFavId);
+            } catch {
+                setFavMap(prev => ({...prev, [venueId]: existingFavId}));
+            }
+        } else {
+            try {
+                const created = await favoritesAPI.add(venueId);
+                setFavMap(prev => ({...prev, [venueId]: created.id}));
+            } catch {
+                // Sevimlilarga qo'sha olmadik — holatni o'zgartirmaymiz
+            }
+        }
     };
 
     return (
@@ -138,7 +177,7 @@ export default function VenueSection() {
                     }}>
                         {venues.map(venue => {
                             const style = getStyle(venue.sport_name);
-                            const isFav = favs.includes(venue.id);
+                            const isFav = Boolean(favMap[venue.id]);
                             const rating = typeof (venue as any).rating === "number" && (venue as any).rating > 0 ? (venue as any).rating : null;
                             return (
                                 <Link key={venue.id} href={`/venues/${venue.id}`}

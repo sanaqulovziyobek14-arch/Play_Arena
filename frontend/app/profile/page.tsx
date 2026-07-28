@@ -18,7 +18,8 @@ const ROLE_CONFIG: Record<string, { label: string; color: string; bg: string }> 
 
 const MENU = [
   { icon: "📅", label: "Mening bronlarim",            href: "/bookings", badge: null as number | null },
-  { icon: "❤️", label: "Sevimli maydonlar",            href: "/venues",   badge: null as number | null },
+  { icon: "❤️", label: "Sevimli maydonlar",            href: "/favorites", badge: null as number | null },
+  { icon: "🤖", label: "Telegram bot orqali boshqarish", href: "https://t.me/PlayArena_bronqilsih_bot", badge: null as number | null, external: true },
   { icon: "🔔", label: "Bildirishnomalar",             href: "#",         badge: 3 as number | null    },
   { icon: "🔒", label: "Parolni o'zgartirish",         href: "#",         badge: null                  },
   { icon: "💬", label: "Yordam va qo'llab-quvvatlash", href: "#",         badge: null                  },
@@ -222,8 +223,14 @@ export default function ProfilePage() {
             borderRadius: "16px", overflow: "hidden", marginBottom: "16px",
             animation: "fadeIn .2s ease",
           }}>
-            {MENU.map(({ icon, label, href, badge }, i) => (
-              <Link key={label} href={href} style={{ textDecoration: "none", display: "block" }}>
+            {MENU.map(({ icon, label, href, badge, external }, i) => (
+              <Link
+                key={label}
+                href={href}
+                target={external ? "_blank" : undefined}
+                rel={external ? "noopener noreferrer" : undefined}
+                style={{ textDecoration: "none", display: "block" }}
+              >
                 <div style={{
                   display: "flex", alignItems: "center", gap: "14px",
                   padding: "16px 20px", cursor: "pointer", transition: "background .15s",

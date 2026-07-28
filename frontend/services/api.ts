@@ -69,6 +69,29 @@ export interface Booking {
     created_at: string;
 }
 
+export interface VenueStats {
+    id: number;
+    name: string;
+    sport: string | null;
+    status: string;
+    status_display: string;
+    owner_id: number;
+
+    total_bookings: number;
+    paid_bookings: number;
+    canceled_bookings: number;
+
+    total_revenue: number;
+
+    average_rating: number | null;
+    review_count: number;
+}
+
+export interface VenueStatsResponse {
+    is_admin_view: boolean;
+    results: VenueStats[];
+}
+
 export interface Review {
     id: number;
     venue: number;
@@ -91,7 +114,7 @@ export interface Payment {
     id: number;
     booking: number;
     amount: string;
-    method: string;
+    payment_method: string;
     status: string;
     created_at: string;
 }
@@ -340,9 +363,12 @@ export const venuesAPI = {
         apiFetch<null>(`/venues/${id}`, {method: "DELETE"}),
     /** Band vaqtlarini olish */
     getBookedSlots: (venueId: number, date: string) =>
-        apiFetch<{ booked_slots: { start: string; end: string }[] }>(
+        apiFetch<{ booked: { start: string; end: string }[] }>(
             `/venues/${venueId}/booked-slots?date=${date}`
         ),
+    myStats: () =>
+        apiFetch<VenueStatsResponse>("/venues/my-stats"),
+
 };
 // ════════════════════════════════════════
 //  BOOKINGS API
@@ -421,7 +447,7 @@ export const favoritesAPI = {
 //  PAYMENTS API
 // ════════════════════════════════════════
 export const paymentsAPI = {
-    create: (data: { booking: number; method: string }) =>
+    create: (data: { booking: number; amount: number; payment_method: "click" | "payme" }) =>
         apiFetch<Payment>("/payments", {
             method: "POST",
             body: JSON.stringify(data),

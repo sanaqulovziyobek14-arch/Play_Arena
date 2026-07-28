@@ -16,6 +16,7 @@ import django
 from django.conf import settings
 from django.utils import timezone
 from django.db.models import Count, Q
+from django.db.utils import IntegrityError
 from asgiref.sync import sync_to_async
 from django.core.files import File
 import requests  # Manzilni koordinatadan matnga o'tkazish uchun
@@ -26,7 +27,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import (
-    Message, CallbackQuery, WebAppInfo,
+    Message, CallbackQuery,
     ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardRemove
 )
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
@@ -46,6 +47,7 @@ load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 OWNER_CHAT_ID = int(os.getenv("OWNER_CHAT_ID", 0))
+BOT_USERNAME = os.getenv("BOT_USERNAME", "PlayArena_bronqilsih_bot")
 
 if not BOT_TOKEN:
     raise ValueError("BOT_TOKEN .env faylida ko'rsatilmagan!")
@@ -135,7 +137,9 @@ def db_get_bookings(date: datetime.date, user_id: int = None, venue_id: int = No
         if venue_id:
             qs = qs.filter(venue_id=venue_id)
         if user_id and user_id != OWNER_CHAT_ID:
-            qs = qs.filter(venue__owner__username=str(user_id))
+            qs = qs.filter(
+                Q(venue__owner__username=str(user_id)) | Q(venue__owner__telegram_chat_id=str(user_id))
+            )
         return list(qs.order_by("start_time"))
     except Exception as e:
         log.error(f"Error fetching bookings: {e}")
@@ -156,11 +160,26 @@ def db_booked_slots(venue_id: int, date: datetime.date) -> list:
 
 
 @sync_to_async
-def db_create_booking(venue_id, date, start, end, booker_tg_id: int):
+def db_create_booking(venue_id, date, start, end, name: str, phone: str, booker_tg_id: int):
     v = Venue.objects.get(pk=venue_id)
-    client_user = User.objects.filter(username=str(booker_tg_id)).first()
-    if not client_user:
-        client_user = v.owner
+
+    # Mijoz uchun Telegram ID bo'yicha User topamiz yoki yaratamiz,
+    # va ism/telefonni shu yozuvga saqlaymiz (ilgari bular umuman saqlanmasdi)
+    client_user, created = User.objects.get_or_create(
+        username=str(booker_tg_id),
+        defaults={"first_name": name, "phone": phone},
+    )
+    if not created:
+        changed = False
+        if name and client_user.first_name != name:
+            client_user.first_name = name
+            changed = True
+        if phone and getattr(client_user, "phone", None) != phone:
+            client_user.phone = phone
+            changed = True
+        if changed:
+            client_user.save()
+
     return Booking.objects.create(
         user=client_user,
         venue=v,
@@ -176,7 +195,9 @@ def db_stats(d1: datetime.date, d2: datetime.date, user_id: int = None) -> dict:
     try:
         qs = Booking.objects.select_related("user", "venue").filter(date__gte=d1, date__lte=d2)
         if user_id and user_id != OWNER_CHAT_ID:
-            qs = qs.filter(venue__owner__username=str(user_id))
+            qs = qs.filter(
+                Q(venue__owner__username=str(user_id)) | Q(venue__owner__telegram_chat_id=str(user_id))
+            )
         lst = list(qs)
         return {
             "total": len(lst),
@@ -263,12 +284,14 @@ def dates_kb() -> InlineKeyboardMarkup:
     return b.as_markup()
 
 
-def slots_kb(booked: list, sh: int, eh: int) -> InlineKeyboardMarkup:
+def slots_kb(booked: list, sh: int, eh: int, today_hour: int = None) -> InlineKeyboardMarkup:
     b = InlineKeyboardBuilder()
     busy = {(s.hour if hasattr(s, "hour") else int(str(s)[:2])) for s, _ in booked}
     for h in range(sh, eh):
         if h in busy:
             b.button(text=f"🔴 {h:02d}:00–{h + 1:02d}:00 (band)", callback_data=f"busy_{h}")
+        elif today_hour is not None and h <= today_hour:
+            b.button(text=f"⚪ {h:02d}:00–{h + 1:02d}:00 (o'tgan)", callback_data=f"busy_{h}")
         else:
             b.button(text=f"🟢 {h:02d}:00–{h + 1:02d}:00", callback_data=f"sl_{h}")
     b.adjust(2)
@@ -392,6 +415,9 @@ async def process_venue_sport(message: Message, state: FSMContext):
 async def process_venue_price(message: Message, state: FSMContext):
     try:
         price = float(message.text.strip())
+        if price <= 0:
+            await message.answer("⚠️ Narx musbat son bo'lishi kerak. Qayta kiriting:")
+            return
         await state.update_data(price=price)
         await message.answer("ℹ️ **4-qadam:** Maydon haqida qisqacha tavsif (description) kiriting:")
         await state.set_state(AddVenueState.description)
@@ -433,18 +459,14 @@ async def process_venue_start_time(message: Message, state: FSMContext):
 async def process_venue_end_time(message: Message, state: FSMContext):
     await state.update_data(end_time=message.text.strip())
 
-    # TELEGRAM WEBAPP REJIMIDAGI XARITA TUGMASI (Katta proyektlar uslubi)
     builder = ReplyKeyboardBuilder()
-    # Har qanday qurilmada universal ishlaydigan ochiq xarita Telegram WebApp linki
-    builder.button(
-        text="🗺️ Xaritadan stadionni tanlash (Yandex/OSM)",
-        web_app=WebAppInfo(url="https://eegeo.github.io/eegeo.js/examples/custom-map-marker/index.html")
-    )
     builder.button(text="📍 Hozirgi joylashuvimni yuborish", request_location=True)
 
     await message.answer(
-        "📍 **7-qadam:** Yuqoridagi ochiq xarita tugmasini bosing, stadion turgan joyni aniq belgilang yoki hozirgi joylashuv tugmasidan foydalaning.\n\n"
-        "👉 _(Qo'shimcha: Agar xaritadan foydalana olmasangiz, matnli aniq manzilni yozib yuborishingiz ham mumkin)_",
+        "📍 **7-qadam:** Stadion joylashgan manzilni yuboring:\n\n"
+        "👉 Pastdagi *\"Hozirgi joylashuvimni yuborish\"* tugmasini bosing "
+        "(stadion oldida turgan bo'lsangiz) yoki manzilni oddiy matn ko'rinishida yozib yuboring "
+        "(masalan: _Chilonzor tumani, 5-kvartal_).",
         reply_markup=builder.as_markup(resize_keyboard=True, one_time_keyboard=True),
         parse_mode="Markdown"
     )
@@ -470,10 +492,9 @@ async def process_venue_location_obj(message: Message, state: FSMContext):
     await state.set_state(AddVenueState.photo)
 
 
-# WebApp xaritadan yoki matn ko'rinishida manzil kiritilganda
+# Matn ko'rinishida manzil kiritilganda
 @dp.message(AddVenueState.location, F.text)
 async def process_venue_location_text(message: Message, state: FSMContext):
-    # Agar foydalanuvchi WebApp orqali jo'natsa, u ham text ichida json/koordinata ko'rinishida kelishi mumkin
     text_val = message.text.strip()
 
     # Standart Toshkent koordinatalarini default holatga o'rnatamiz, agar foydalanuvchi matn yozgan bo'lsa
@@ -546,7 +567,10 @@ async def venue_submit_final_handler(callback: CallbackQuery, state: FSMContext)
     def save_venue_and_image_to_db(user_id):
         owner_user = User.objects.filter(username=str(user_id)).first()
         if not owner_user:
-            owner_user = User.objects.filter(role="owner").first()
+            owner_user, _ = User.objects.get_or_create(
+                username=str(user_id),
+                defaults={"role": "owner"},
+            )
 
         sport_obj, _ = SportType.objects.get_or_create(name=data['sport_type'])
 
@@ -593,11 +617,11 @@ async def venue_submit_final_handler(callback: CallbackQuery, state: FSMContext)
 
     admin_text = (
         f"🔔 **Yangi maydon arizasi (Botdan)**\n\n"
-        f" Stadium ID: #{new_venue.id}\n"
+        f"🆔 Stadium ID: #{new_venue.id}\n"
         f"🏟️ Nomi: {new_venue.name}\n"
         f"⚽ Sport: {data['sport_type']}\n"
-        f" Narxi: {new_venue.price} so'm\n"
-        f" Tavsif: {new_venue.description}\n"
+        f"💰 Narxi: {int(new_venue.price):,} so'm\n"
+        f"📝 Tavsif: {new_venue.description}\n"
         f"⏰ Ish vaqti: {new_venue.start_time} - {new_venue.end_time}\n"
         f"📍 Manzil: {data.get('address')}\n\n"
         f"👤 Yuboruvchi: {callback.from_user.full_name} (ID: {callback.from_user.id})"
@@ -689,7 +713,6 @@ async def deny_venue_callback(callback: CallbackQuery):
         reply_markup=None
     )
     try:
-        # venue o'zgaruvchisidan foydalanamiz va stadion nomini ko'rsatamiz
         venue_name = venue.name if venue else "Siz yuborgan"
         await bot.send_message(
             chat_id=user_tg_id,
@@ -861,11 +884,15 @@ async def pick_date(cb: CallbackQuery, state: FSMContext):
     busy = await db_booked_slots(data["venue_id"], d)
     await state.update_data(bdate=d.isoformat())
     await state.set_state(BookingState.slot)
+
+    today = timezone.now().date()
+    today_hour = timezone.now().hour if d == today else None
+
     await cb.message.edit_text(
         f"⏰ *{data['venue_name']} — {d.strftime('%d.%m.%Y')}*\n"
         f"🟢 Bo'sh  🔴 Band\n\nVaqt tanlang:",
         parse_mode="Markdown",
-        reply_markup=slots_kb(busy, data["sh"], data["eh"])
+        reply_markup=slots_kb(busy, data["sh"], data["eh"], today_hour=today_hour)
     )
     await cb.answer()
 
@@ -884,7 +911,7 @@ async def pick_slot(cb: CallbackQuery, state: FSMContext):
 
 @dp.callback_query(BookingState.slot, F.data.startswith("busy_"))
 async def busy_slot(cb: CallbackQuery):
-    await cb.answer("❌ Bu vaqt band! Boshqa vaqt tanlang.", show_alert=True)
+    await cb.answer("❌ Bu vaqt band yoki o'tib ketgan! Boshqa vaqt tanlang.", show_alert=True)
 
 
 @dp.message(BookingState.name, F.text)
@@ -928,7 +955,10 @@ async def do_save(cb: CallbackQuery, state: FSMContext):
     start = datetime.time(data["sh_val"], 0)
     end = datetime.time(data["eh_val"], 0)
     try:
-        b = await db_create_booking(data["venue_id"], d, start, end)
+        b = await db_create_booking(
+            data["venue_id"], d, start, end,
+            data["cname"], data["cphone"], cb.from_user.id,
+        )
         await cb.message.edit_text(
             f"✅ *Bron #{b.id} saqlandi!*\n\n"
             f"🏟️ {b.venue.name}\n"
@@ -938,7 +968,7 @@ async def do_save(cb: CallbackQuery, state: FSMContext):
             f"🌐 Saytda avtomatik band qilindi",
             parse_mode="Markdown"
         )
-    except django.db.utils.IntegrityError:
+    except IntegrityError:
         await cb.message.edit_text("❌ Xatolik: Bu vaqt oraliq bazada hozirgina band qilindi!", parse_mode="Markdown")
     except Exception as e:
         log.error(f"Save error: {e}")
@@ -979,7 +1009,13 @@ async def daily_report():
             chat_id = int(owner.telegram_chat_id)
             if chat_id == OWNER_CHAT_ID:
                 continue
-            bks = await db_get_bookings(today, user_id=chat_id)
+            # Diqqat: bu yerda ataylab owner.username emas, aynan shu ownerning
+            # o'ziga tegishli bronlarini olamiz (venue__owner=owner orqali)
+            bks = await sync_to_async(lambda: list(
+                Booking.objects.select_related("user", "venue")
+                .filter(date=today, venue__owner=owner)
+                .order_by("start_time")
+            ))()
             active = [b for b in bks if b.status not in ["canceled"]]
             if active:
                 text = "🌅 *Xayrli tong! Bugungi bronlaringiz ro'yxati:* \n"

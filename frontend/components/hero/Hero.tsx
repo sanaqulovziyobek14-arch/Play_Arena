@@ -32,7 +32,7 @@ export default function HeroSection() {
           </div>
 
           {/* Asosiy Sarlavha (Makatdagi kabi juda qalin va yirik) */}
-          <h1 className="text-4xl sm:text-5xl xl:text-6xl font-black tracking-tight leading-none text-white">
+          <h1 className="text-3xl sm:text-4xl lg:text-4xl xl:text-5xl font-black tracking-tight leading-tight text-white">
             Sport maydonini <br />
             <span className="text-emerald-400 bg-gradient-to-r from-emerald-400 to-green-300 bg-clip-text text-transparent">
               toping, bron qiling
@@ -87,12 +87,12 @@ export default function HeroSection() {
           <div className="absolute w-64 h-64 bg-emerald-500/20 opacity-30 blur-[100px] rounded-full pointer-events-none" />
 
           <div className="w-64 h-64 sm:w-80 sm:h-80 xl:w-96 xl:h-96 flex items-center justify-center">
-            <svg viewBox="0 0 400 400" className="w-full h-full drop-shadow-[0_0_35px_rgba(16,185,129,0.3)]" fill="none" xmlns="http://www.w3.org/2000/svg">
-              {/* Tezlika chiziqlari (Qanotlar) */}
-              <path d="M70 140H170L140 165H50L70 140Z" fill="url(#wingGradient)" opacity="0.6" />
-              <path d="M40 180H190L160 210H10L40 180Z" fill="url(#wingGradient)" />
-              <path d="M60 225H180L155 250H30L60 225Z" fill="url(#wingGradient)" opacity="0.8" />
-              <path d="M90 270H160L140 292H70L90 270Z" fill="url(#wingGradient)" opacity="0.5" />
+            <svg viewBox="-70 0 470 400" className="w-full h-full drop-shadow-[0_0_35px_rgba(16,185,129,0.3)]" fill="none" xmlns="http://www.w3.org/2000/svg">
+              {/* Tezlika chiziqlari (Qanotlar) — uzunroq, referensga mos cho'zilgan dum */}
+              <path d="M0 140H170L140 165H-80L0 140Z" fill="url(#wingGradient)" opacity="0.55" />
+              <path d="M-30 180H190L160 210H-110L-30 180Z" fill="url(#wingGradient)" />
+              <path d="M-10 225H180L155 250H-90L-10 225Z" fill="url(#wingGradient)" opacity="0.8" />
+              <path d="M15 270H160L140 292H-55L15 270Z" fill="url(#wingGradient)" opacity="0.5" />
 
               {/* Katta P Harfi */}
               <path d="M130 110H260C330 110 370 150 370 210C370 270 320 310 250 310H195L155 350H100L150 260H175L245 260C285 260 310 240 310 210C310 180 290 160 245 160H160L110 260H55L130 110Z" fill="url(#pGradient)" />

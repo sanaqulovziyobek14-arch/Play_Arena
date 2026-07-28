@@ -10,19 +10,20 @@ interface LogoProps {
 
 export default function Logo({ collapsed = false }: LogoProps) {
   return (
-    <Link href="/frontend/public" className="group flex items-center gap-3">
+    <Link href="/" className="group flex items-center gap-2.5">
       <motion.div
         whileHover={{ scale: 1.08 }}
         whileTap={{ scale: 0.95 }}
         transition={{ duration: 0.2 }}
-        className="relative h-12 w-12 overflow-hidden rounded-xl bg-gradient-to-br from-green-500 via-green-400 to-lime-300 shadow-[0_0_30px_rgba(34,197,94,.35)]"
+        className="relative h-9 w-9 overflow-hidden rounded-lg bg-gradient-to-br from-green-500 via-green-400 to-lime-300 shadow-[0_0_20px_rgba(34,197,94,.3)]"
       >
         <Image
-          src="/logo.png"
+          src="/publig/logo.png"
           alt="Play Arena"
           fill
           priority
-          className="object-contain p-2"
+          sizes="36px"
+          className="object-contain p-1.5"
         />
       </motion.div>
 
@@ -31,15 +32,11 @@ export default function Logo({ collapsed = false }: LogoProps) {
           initial={{ opacity: 0, x: -8 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: .3 }}
-          className="flex flex-col leading-none"
+          className="flex items-center leading-none"
         >
-          <span className="text-2xl font-extrabold tracking-wide">
+          <span className="text-lg font-extrabold tracking-wide">
             <span className="text-white">PLAY</span>
             <span className="text-green-400">ARENA</span>
-          </span>
-
-          <span className="text-xs text-zinc-400 tracking-[3px] uppercase">
-            Sport Booking
           </span>
         </motion.div>
       )}

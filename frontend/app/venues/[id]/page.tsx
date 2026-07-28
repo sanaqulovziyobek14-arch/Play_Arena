@@ -7,7 +7,7 @@ import {useState, useEffect, useCallback, use} from "react";
 import {useRouter} from "next/navigation";
 import Navbar from "@/components/navbar/Navbar";
 import Footer from "@/components/footer/Footer";
-import {venuesAPI, bookingsAPI, getAccessToken, type Venue} from "@/services/api";
+import {venuesAPI, bookingsAPI, paymentsAPI, getAccessToken, type Venue} from "@/services/api";
 
 const DAY_NAMES = ["Yakshanba", "Dushanba", "Seshanba", "Chorshanba", "Payshanba", "Juma", "Shanba"];
 const MONTH_NAMES = ["yan", "fev", "mar", "apr", "may", "iyun", "iyul", "avg", "sen", "okt", "noy", "dek"];
@@ -16,10 +16,11 @@ function generateDates(count = 7) {
     return Array.from({length: count}, (_, i) => {
         const d = new Date();
         d.setDate(d.getDate() + i);
+        const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
         return {
             day: i === 0 ? "Bugun" : i === 1 ? "Ertaga" : DAY_NAMES[d.getDay()],
             date: `${d.getDate()} ${MONTH_NAMES[d.getMonth()]}`,
-            iso: d.toISOString().split("T")[0],
+            iso,
         };
     });
 }
@@ -33,6 +34,13 @@ function generateSlots(startTime: string, endTime: string) {
         sh += 1;
     }
     return slots;
+}
+
+/** "08:00" -> "08:00 - 09:00" ko'rinishida chiroyli oraliq yozuvi */
+function slotRangeLabel(start: string) {
+    const [h, m] = start.split(":").map(Number);
+    const endH = (h + 1) % 24;
+    return `${start} - ${String(endH).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
 const SportIcon = ({sportName, className = "w-16 h-16 text-white"}: { sportName: string; className?: string }) => {
@@ -73,6 +81,8 @@ function PaymentModal({
     const [paying, setPaying] = useState(false);
     const [paid, setPaid] = useState(false);
     const [expired, setExpired] = useState(false);
+    const [method, setMethod] = useState<"click" | "payme" | null>(null);
+    const [payError, setPayError] = useState("");
 
     useEffect(() => {
         if (paid || expired) return;
@@ -90,11 +100,25 @@ function PaymentModal({
     const secs = seconds % 60;
 
     const handlePay = async () => {
+        if (!method) {
+            setPayError("Iltimos, to'lov usulini tanlang.");
+            return;
+        }
         setPaying(true);
-        await new Promise(r => setTimeout(r, 1500));
-        setPaid(true);
-        setPaying(false);
-        setTimeout(onSuccess, 1200);
+        setPayError("");
+        try {
+            await paymentsAPI.create({
+                booking: bookingId,
+                amount: price,
+                payment_method: method,
+            });
+            setPaid(true);
+            setTimeout(onSuccess, 1200);
+        } catch (err: any) {
+            setPayError(err?.message || "To'lovni amalga oshirib bo'lmadi. Qayta urinib ko'ring.");
+        } finally {
+            setPaying(false);
+        }
     };
 
     return (
@@ -148,15 +172,66 @@ function PaymentModal({
                         }}>
                             Vaqt qoldi: {String(mins).padStart(2, "0")}:{String(secs).padStart(2, "0")}
                         </div>
-                        <button onClick={handlePay} disabled={paying} style={{
+                        <div style={{
+                            display: "grid",
+                            gridTemplateColumns: "1fr 1fr",
+                            gap: "10px",
+                            marginBottom: "16px",
+                        }}>
+                            <button
+                                onClick={() => setMethod("click")}
+                                style={{
+                                    padding: "12px",
+                                    borderRadius: "10px",
+                                    border: method === "click" ? "2px solid #22c55e" : "1px solid rgba(255,255,255,0.12)",
+                                    background: method === "click" ? "rgba(34,197,94,0.1)" : "rgba(255,255,255,0.03)",
+                                    color: "#fff",
+                                    fontWeight: 700,
+                                    fontSize: "13px",
+                                    cursor: "pointer",
+                                }}
+                            >
+                                💳 Click
+                            </button>
+                            <button
+                                onClick={() => setMethod("payme")}
+                                style={{
+                                    padding: "12px",
+                                    borderRadius: "10px",
+                                    border: method === "payme" ? "2px solid #22c55e" : "1px solid rgba(255,255,255,0.12)",
+                                    background: method === "payme" ? "rgba(34,197,94,0.1)" : "rgba(255,255,255,0.03)",
+                                    color: "#fff",
+                                    fontWeight: 700,
+                                    fontSize: "13px",
+                                    cursor: "pointer",
+                                }}
+                            >
+                                📱 Payme
+                            </button>
+                        </div>
+                        {payError && (
+                            <div style={{
+                                padding: "10px 12px",
+                                background: "rgba(239,68,68,0.1)",
+                                border: "1px solid rgba(239,68,68,0.25)",
+                                borderRadius: "8px",
+                                color: "#f87171",
+                                fontSize: "12.5px",
+                                marginBottom: "14px",
+                            }}>
+                                {payError}
+                            </div>
+                        )}
+                        <button onClick={handlePay} disabled={paying || !method} style={{
                             width: "100%",
                             padding: "14px",
                             borderRadius: "12px",
                             border: "none",
-                            background: "linear-gradient(135deg,#22c55e,#16a34a)",
+                            background: !method ? "rgba(255,255,255,0.08)" : "linear-gradient(135deg,#22c55e,#16a34a)",
                             color: "#fff",
                             fontWeight: 800,
-                            cursor: "pointer"
+                            cursor: !method || paying ? "not-allowed" : "pointer",
+                            opacity: paying ? 0.7 : 1,
                         }}>
                             {paying ? "To'lanmoqda..." : `${price.toLocaleString()} so'm to'lash`}
                         </button>
@@ -248,7 +323,7 @@ export default function VenueDetailPage(props: PageProps) {
     useEffect(() => {
         if (!cleanId || !dates[activeDate]) return;
         venuesAPI.getBookedSlots(cleanId, dates[activeDate].iso)
-            .then(res => setBookedSlots((res.booked_slots || []).map((b: any) => typeof b === "object" ? b.start : b)))
+            .then(res => setBookedSlots((res.booked || []).map((b: any) => typeof b === "object" ? b.start : b)))
             .catch(() => setBookedSlots([]));
     }, [cleanId, activeDate, dates]);
 
@@ -256,6 +331,13 @@ export default function VenueDetailPage(props: PageProps) {
         const t = `${time}:00`;
         return bookedSlots.some(b => b === t || b?.startsWith(time));
     }, [bookedSlots]);
+
+    const isPastToday = useCallback((time: string) => {
+        if (activeDate !== 0) return false;
+        const now = new Date();
+        const [h, m] = time.split(":").map(Number);
+        return h * 60 + m <= now.getHours() * 60 + now.getMinutes();
+    }, [activeDate]);
 
     const handleBook = async (startT?: string, endT?: string) => {
         if (!venue) return;
@@ -290,6 +372,18 @@ export default function VenueDetailPage(props: PageProps) {
             alert("Bron qilish uchun avval tizimga kirishingiz kerak!");
             router.push("/login");
             return;
+        }
+
+        // O'tib ketgan vaqtni bron qilishning oldini olamiz (faqat "Bugun" uchun)
+        if (activeDate === 0) {
+            const now = new Date();
+            const [startH, startM] = start.split(":").map(Number);
+            const selectedMinutes = startH * 60 + startM;
+            const nowMinutes = now.getHours() * 60 + now.getMinutes();
+            if (selectedMinutes <= nowMinutes) {
+                alert("Bu vaqt allaqachon o'tib ketgan. Iltimos, kelajakdagi vaqtni tanlang.");
+                return;
+            }
         }
 
         setBooking(true);
@@ -501,14 +595,14 @@ export default function VenueDetailPage(props: PageProps) {
                                 }}>Mavjud soatlar:</label>
                                 <div style={{
                                     display: "grid",
-                                    gridTemplateColumns: "repeat(3, 1fr)",
+                                    gridTemplateColumns: "repeat(2, 1fr)",
                                     gap: "8px",
                                     maxHeight: "200px",
                                     overflowY: "auto",
                                     marginBottom: "24px"
                                 }}>
                                     {slots.map((slot, idx) => {
-                                        const booked = isBooked(slot);
+                                        const booked = isBooked(slot) || isPastToday(slot);
                                         const selected = activeSlot === idx;
                                         return (
                                             <button key={idx} disabled={booked} onClick={() => setActiveSlot(idx)}
@@ -520,10 +614,10 @@ export default function VenueDetailPage(props: PageProps) {
                                                         color: booked ? "rgba(255,255,255,0.15)" : selected ? "#22c55e" : "#fff",
                                                         textDecoration: booked ? "line-through" : "none",
                                                         cursor: booked ? "not-allowed" : "pointer",
-                                                        fontSize: "13px",
+                                                        fontSize: "12.5px",
                                                         fontWeight: 600
                                                     }}>
-                                                {slot}
+                                                {slotRangeLabel(slot)}
                                             </button>
                                         );
                                     })}
@@ -605,7 +699,7 @@ export default function VenueDetailPage(props: PageProps) {
                     startTime={customMode ? customStart : slots[activeSlot || 0]}
                     endTime={customMode ? customEnd : `${String(parseInt((slots[activeSlot || 0]).split(":")[0]) + 1).padStart(2, "0")}:00`}
                     date={dates[activeDate].date} price={price}
-                    onSuccess={() => router.push("/profile/bookings")}
+                    onSuccess={() => router.push("/bookings")}
                     onClose={() => setShowPayment(false)}
                 />
             )}
