@@ -38,7 +38,7 @@ function getPageButtons(current: number, total: number): (number | "...")[] {
 }
 
 export default function VenueSection() {
-    const [allVenues, setVenues] = useState<Venue[]>([]);
+    const [venues, setVenues] = useState<Venue[]>([]);
     const [totalCount, setTotalCount] = useState<number>(0);
     const [favMap, setFavMap] = useState<Record<number, number>>({});
     const router = useRouter();
@@ -65,14 +65,13 @@ export default function VenueSection() {
         favoritesAPI.getAll()
             .then(res => {
                 const map: Record<number, number> = {};
-                res.results.forEach(f => { map[f.venue] = f.id; });
+                (res.results || []).forEach(f => { map[f.venue] = f.id; });
                 setFavMap(map);
             })
             .catch(() => {});
     }, []);
 
-    const totalPages = Math.max(1, Math.ceil(allVenues.length / PER_PAGE));
-    const venues = allVenues.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+    const totalPages = Math.max(1, Math.ceil(totalCount / PER_PAGE));
 
     const goToPage = (p: number) => {
         if (p < 1 || p > totalPages || p === page) return;
@@ -289,7 +288,7 @@ export default function VenueSection() {
                 )}
 
                 {/* Pagination */}
-                {!loading && allVenues.length > PER_PAGE && (
+                {!loading && totalCount > PER_PAGE && (
                     <div style={{
                         marginTop: "28px",
                         display: "flex",

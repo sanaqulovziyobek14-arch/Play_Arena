@@ -12,7 +12,6 @@ from apps.views import (
 router = SimpleRouter(trailing_slash=False)
 
 router.register("users", UserViewSet, basename="users")
-router.register("sports", SportTypeViewSet, basename="sports")
 router.register("venues", VenueViewSet, basename="venues")
 router.register("venue-images", VenueImageViewSet, basename="venue-images")
 router.register("bookings", BookingViewSet, basename="bookings")

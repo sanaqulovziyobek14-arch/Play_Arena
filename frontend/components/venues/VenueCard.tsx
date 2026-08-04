@@ -1,6 +1,7 @@
 "use client";
 
 import {useState} from "react";
+import {bookingsAPI, getAccessToken} from "@/services/api";
 
 interface Props {
     venue: {
@@ -32,31 +33,21 @@ export default function VenueCard({venue}: Props) {
             return;
         }
 
+        const token = getAccessToken();
+        if (!token) {
+            alert("❌ Login qiling!");
+            return;
+        }
+
         setLoading(true);
 
         try {
-            const token = localStorage.getItem("token");
-
-            if (!token) {
-                alert("❌ Login qiling!");
-                return;
-            }
-
-            const res = await fetch("http://127.0.0.1:8000/api/bookings/", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                    venue: venue.id,
-                    date,
-                    start_time: startTime,
-                    end_time: endTime,
-                }),
+            await bookingsAPI.create({
+                venue: venue.id,
+                date,
+                start_time: startTime,
+                end_time: endTime,
             });
-
-            if (!res.ok) throw new Error();
 
             alert("✅ Band qilish muvaffaqiyatli!");
             setOpen(false);
@@ -67,7 +58,7 @@ export default function VenueCard({venue}: Props) {
             setEndTime("");
 
         } catch (err) {
-            alert("❌ Xatolik yuz berdi!");
+            alert(err instanceof Error ? err.message : "❌ Xatolik yuz berdi!");
         } finally {
             setLoading(false);
         }

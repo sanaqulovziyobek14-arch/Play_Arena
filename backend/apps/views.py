@@ -235,9 +235,7 @@ class VenueViewSet(ModelViewSet):
     @extend_schema(summary="Yangi maydon qo'shish (faqat owner/admin)")
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        if not serializer.is_valid():
-            print(serializer.errors)
-            return Response(serializer.errors, status=400)
+        serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         return Response(serializer.data, status=201)
 

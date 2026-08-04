@@ -24,7 +24,7 @@ export default function NavLinks({
   const links = [
     { href: "/", label: t.home },
     { href: "/venues", label: t.venues },
-    { href: "/sport-types", label: t.sports },
+    { href: "/sports", label: t.sports },
     { href: "/bookings", label: t.bookings },
     { href: "/about", label: t.about },
   ];
@@ -38,13 +38,24 @@ export default function NavLinks({
       )}
     >
       {links.map((item) => {
-        const active = pathname === item.href;
+        const active = pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href));
 
         return (
           <Link
             key={item.href}
             href={item.href}
-            onClick={onItemClick}
+            onClick={(e) => {
+              if (item.href === "/sports" && pathname === "/") {
+                e.preventDefault();
+                const el = document.getElementById("sports-section");
+                if (el) {
+                  el.scrollIntoView({ behavior: "smooth" });
+                } else {
+                  window.location.href = "/sports";
+                }
+              }
+              if (onItemClick) onItemClick();
+            }}
             className={clsx(
               "relative group",
               mobile &&
@@ -55,7 +66,7 @@ export default function NavLinks({
               <span
                 className={clsx(
                   "text-[15px] font-semibold",
-                  active ? "text-green-400" : "text-gray-200"
+                  active ? "text-emerald-400" : "text-gray-200"
                 )}
               >
                 {item.label}
@@ -67,7 +78,7 @@ export default function NavLinks({
                 className={clsx(
                   "text-sm font-semibold transition-colors duration-300",
                   active
-                    ? "text-green-400"
+                    ? "text-emerald-400 font-bold"
                     : "text-gray-300 group-hover:text-white"
                 )}
               >
@@ -78,9 +89,9 @@ export default function NavLinks({
             {!mobile && (
               <span
                 className={clsx(
-                  "absolute left-0 -bottom-1.5 h-[2px] rounded-full bg-green-500 transition-all duration-300",
+                  "absolute left-0 -bottom-1.5 h-[2px] rounded-full bg-emerald-500 transition-all duration-300",
                   active
-                    ? "w-full"
+                    ? "w-full shadow-[0_0_8px_rgba(16,185,129,0.8)]"
                     : "w-0 group-hover:w-full"
                 )}
               />

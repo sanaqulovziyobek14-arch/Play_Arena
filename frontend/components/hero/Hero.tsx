@@ -46,14 +46,20 @@ export default function HeroSection() {
 
           {/* Tugmalar guruhi */}
           <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 w-full pt-2">
-            <button className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 px-8 py-4 rounded-xl font-black text-sm flex items-center gap-2 transition-all shadow-lg shadow-emerald-500/20 transform active:scale-95">
+            <button
+              onClick={() => document.getElementById("venues-section")?.scrollIntoView({ behavior: "smooth" })}
+              className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 px-8 py-4 rounded-xl font-black text-sm flex items-center gap-2 transition-all shadow-lg shadow-emerald-500/20 transform active:scale-95 cursor-pointer"
+            >
               <span>Maydonlarni ko'rish</span>
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </button>
 
-            <button className="bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-white px-6 py-4 rounded-xl font-bold text-sm flex items-center gap-2 transition-all transform active:scale-95">
+            <button
+              onClick={() => document.getElementById("sports-section")?.scrollIntoView({ behavior: "smooth" })}
+              className="bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-white px-6 py-4 rounded-xl font-bold text-sm flex items-center gap-2 transition-all transform active:scale-95 cursor-pointer"
+            >
               <span className="text-xs bg-white/10 w-5 h-5 flex items-center justify-center rounded-full text-white">▶</span>
               <span>Qanday ishlaydi?</span>
             </button>
@@ -159,7 +165,7 @@ export default function HeroSection() {
             </div>
 
             {/* Bron qilish tugmasi */}
-            <button className="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 py-3.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all shadow-lg shadow-emerald-500/10 flex items-center justify-center gap-2">
+            <button className="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 py-3.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all shadow-lg shadow-emerald-500/10 flex items-center justify-center gap-2 cursor-pointer">
               <span>Bron qilish</span>
               <span className="text-sm">→</span>
             </button>
