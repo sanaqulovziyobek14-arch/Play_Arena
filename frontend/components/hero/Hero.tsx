@@ -1,15 +1,33 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { statsAPI, type PlatformStats } from "@/services/api";
+import { useRouter } from "next/navigation";
+import { statsAPI, sportTypesAPI, type PlatformStats, type SportType } from "@/services/api";
+
+const SPORT_EMOJI: Record<string, string> = {
+  "mini futbol":  "⚽",
+  "fudbol":       "⚽",
+  "basketbol":    "🏀",
+  "tennis":       "🎾",
+  "bilyard":      "🎱",
+  "stol tennisi": "🏓",
+  "voleybol":     "🏐",
+};
+const getEmoji = (name: string) => SPORT_EMOJI[name.toLowerCase()] || "🏟️";
 
 export default function HeroSection() {
+  const router = useRouter();
   const [stats, setStats] = useState<PlatformStats | null>(null);
+  const [sports, setSports] = useState<SportType[]>([]);
 
   useEffect(() => {
     statsAPI.get()
       .then(setStats)
       .catch(() => setStats(null)); // Xato bo'lsa raqamlar "—" ko'rinishida qoladi
+
+    sportTypesAPI.getAll()
+      .then(res => setSports(res.results || []))
+      .catch(() => setSports([]));
   }, []);
 
   const venuesLabel = stats ? `${stats.total_venues}+` : "—";
@@ -77,7 +95,7 @@ export default function HeroSection() {
             </button>
 
             <button
-              onClick={() => document.getElementById("sports-section")?.scrollIntoView({ behavior: "smooth" })}
+              onClick={() => document.getElementById("venues-section")?.scrollIntoView({ behavior: "smooth" })}
               className="bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-white px-6 py-4 rounded-xl font-bold text-sm flex items-center gap-2 transition-all transform active:scale-95 cursor-pointer"
             >
               <span className="text-xs bg-white/10 w-5 h-5 flex items-center justify-center rounded-full text-white">▶</span>
@@ -108,7 +126,7 @@ export default function HeroSection() {
         </div>
 
         {/* ================= O'NG USTUN: BRAND LOGOTIPI (grid-cols-7) ================= */}
-        <div className="lg:col-span-7 flex justify-center items-center relative py-6 lg:py-0">
+        <div className="lg:col-span-7 flex flex-col justify-center items-center relative py-6 lg:py-0 gap-6">
           {/* Logotip ortidagi yorqin yashil doira neon */}
           <div className="absolute w-64 h-64 bg-emerald-500/20 opacity-30 blur-[100px] rounded-full pointer-events-none" />
 
@@ -140,6 +158,22 @@ export default function HeroSection() {
               </defs>
             </svg>
           </div>
+
+          {/* Ixcham sport turlari teglari — logo ostida, bazadan real vaqtda olinadi */}
+          {sports.length > 0 && (
+            <div className="flex flex-wrap items-center justify-center gap-2 max-w-md relative z-10">
+              {sports.slice(0, 8).map((sport) => (
+                <button
+                  key={sport.id}
+                  onClick={() => router.push(`/venues?sport=${sport.id}`)}
+                  className="flex items-center gap-1.5 bg-slate-900/80 hover:bg-emerald-500/10 border border-slate-800 hover:border-emerald-500/40 text-slate-300 hover:text-emerald-400 px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer backdrop-blur-sm"
+                >
+                  <span className="text-sm leading-none">{getEmoji(sport.name)}</span>
+                  <span>{sport.name}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
       </div>

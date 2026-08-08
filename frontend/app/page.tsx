@@ -1,7 +1,5 @@
-"use client";
 import Navbar from "@/components/navbar/Navbar";
 import Hero from "@/components/hero/Hero";
-import SportGrid from "@/components/sports/SportGrid";
 import VenueSection from "@/components/venues/VenueSection";
 import MapSection from "@/components/map/MapSection";
 import StatsSection from "@/components/stats/StatsSection";
@@ -15,7 +13,6 @@ export default function Home() {
       <Navbar />
       <div style={{ paddingTop: "60px" }}>
         <Hero />
-        <SportGrid />
         <VenueSection />
         <MapSection />
         <StatsSection />

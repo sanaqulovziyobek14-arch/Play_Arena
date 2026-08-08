@@ -6,3 +6,5 @@ COPY . /app
 RUN uv sync
 
 CMD ["uv", "run", "python", "manage.py", "runserver", "0.0.0.0:8000"]
+
+ENV UV_LINK_MODE=copy
