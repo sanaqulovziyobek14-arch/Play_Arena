@@ -1,6 +1,26 @@
-import React from "react";
+"use client";
+
+import React, { useEffect, useState } from "react";
+import { statsAPI, type PlatformStats } from "@/services/api";
 
 export default function HeroSection() {
+  const [stats, setStats] = useState<PlatformStats | null>(null);
+
+  useEffect(() => {
+    statsAPI.get()
+      .then(setStats)
+      .catch(() => setStats(null)); // Xato bo'lsa raqamlar "—" ko'rinishida qoladi
+  }, []);
+
+  const venuesLabel = stats ? `${stats.total_venues}+` : "—";
+  const usersLabel =
+    stats == null
+      ? "—"
+      : stats.total_users >= 1000
+        ? `${(stats.total_users / 1000).toFixed(1).replace(/\.0$/, "")}K+`
+        : `${stats.total_users}+`;
+  const ratingLabel = stats?.average_rating != null ? stats.average_rating.toFixed(1) : "—";
+
   return (
     <section className="relative w-full min-h-screen bg-slate-950 text-white flex items-center justify-center pt-24 pb-16 overflow-hidden">
 
@@ -41,7 +61,7 @@ export default function HeroSection() {
 
           {/* Tavsif matni */}
           <p className="text-slate-400 text-sm sm:text-base max-w-md leading-relaxed font-medium">
-            <span className="text-white font-semibold">250+ maydon</span>, real vaqt bron qilish va qulay toʻlov tizimi bilan sport tajribangizni oshiring!
+            <span className="text-white font-semibold">{venuesLabel} maydon</span>, real vaqt bron qilish va qulay toʻlov tizimi bilan sport tajribangizni oshiring!
           </p>
 
           {/* Tugmalar guruhi */}
@@ -68,18 +88,18 @@ export default function HeroSection() {
           {/* Statistika Bloki (Makatdagi kabi zich ajratilgan chiziqlar bilan) */}
           <div className="flex items-center gap-6 sm:gap-8 pt-6 border-t border-slate-900 w-full max-w-md justify-center lg:justify-start">
             <div>
-              <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">250+</div>
+              <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">{venuesLabel}</div>
               <div className="text-[11px] text-slate-500 font-bold uppercase tracking-wider mt-1">Maydonlar</div>
             </div>
             <div className="h-8 w-px bg-slate-900" />
             <div>
-              <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">10K+</div>
+              <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">{usersLabel}</div>
               <div className="text-[11px] text-slate-500 font-bold uppercase tracking-wider mt-1">Foydalanuvchilar</div>
             </div>
             <div className="h-8 w-px bg-slate-900" />
             <div>
               <div className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-1">
-                <span>4.9</span>
+                <span>{ratingLabel}</span>
                 <span className="text-amber-400 text-lg leading-none">★</span>
               </div>
               <div className="text-[11px] text-slate-500 font-bold uppercase tracking-wider mt-1">Reyting</div>
@@ -87,8 +107,8 @@ export default function HeroSection() {
           </div>
         </div>
 
-        {/* ================= O'RTA USTUN: BRAND LOGOTIPI (grid-cols-4) ================= */}
-        <div className="lg:col-span-4 flex justify-center items-center relative py-6 lg:py-0">
+        {/* ================= O'NG USTUN: BRAND LOGOTIPI (grid-cols-7) ================= */}
+        <div className="lg:col-span-7 flex justify-center items-center relative py-6 lg:py-0">
           {/* Logotip ortidagi yorqin yashil doira neon */}
           <div className="absolute w-64 h-64 bg-emerald-500/20 opacity-30 blur-[100px] rounded-full pointer-events-none" />
 
@@ -119,56 +139,6 @@ export default function HeroSection() {
                 <linearGradient id="pGradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#FFFFFF" /><stop offset="100%" stopColor="#9CA3AF" /></linearGradient>
               </defs>
             </svg>
-          </div>
-        </div>
-
-        {/* ================= O'NG USTUN: PREMIUM BRON KARTASI (grid-cols-3) ================= */}
-        <div className="lg:col-span-3 flex justify-center lg:justify-end w-full">
-          <div className="w-full max-w-[330px] bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-2xl backdrop-blur-xl relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent" />
-
-            {/* Arena nomi */}
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-xl">🏟️</div>
-              <div>
-                <h3 className="text-white font-black text-sm tracking-wide">Arena Football</h3>
-                <p className="text-slate-500 text-xs font-semibold mt-0.5">Football</p>
-              </div>
-            </div>
-
-            {/* Bo'sh vaqtlar jadvali */}
-            <div className="space-y-3 mb-6">
-              <span className="text-slate-400 text-xs font-bold block tracking-wide">Ertangi bo'sh vaqtlar</span>
-              <div className="grid grid-cols-4 gap-1.5">
-                {["18:00", "20:00", "22:00", "00:00"].map((time, idx) => (
-                  <button
-                    key={time}
-                    className={`text-[11px] font-black py-2.5 rounded-lg border text-center transition-all ${
-                      idx === 0 
-                        ? "bg-emerald-500 border-emerald-500 text-slate-950 shadow-md shadow-emerald-500/10" 
-                        : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-white"
-                    }`}
-                  >
-                    {time}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Narx qismi */}
-            <div className="border-t border-slate-800/80 pt-4 mb-6">
-              <span className="text-slate-500 text-[10px] font-bold block uppercase tracking-widest">Narxi / 1 soat</span>
-              <div className="flex items-baseline gap-1 mt-1">
-                <span className="text-2xl font-black text-white tracking-tight">120 000</span>
-                <span className="text-emerald-400 text-xs font-black uppercase">so'm</span>
-              </div>
-            </div>
-
-            {/* Bron qilish tugmasi */}
-            <button className="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 py-3.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all shadow-lg shadow-emerald-500/10 flex items-center justify-center gap-2 cursor-pointer">
-              <span>Bron qilish</span>
-              <span className="text-sm">→</span>
-            </button>
           </div>
         </div>
 

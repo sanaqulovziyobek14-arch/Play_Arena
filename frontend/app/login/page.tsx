@@ -1,13 +1,18 @@
 "use client";
 
-import {Suspense, useState} from "react";
+import {Suspense, useEffect, useState} from "react";
 import Link from "next/link";
 import {useRouter} from "next/navigation";
-import {authAPI, setTokens} from "@/services/api";
+import {authAPI, setTokens, statsAPI} from "@/services/api";
 
 function LoginContent() {
     const router = useRouter();
     const [isLogin, setIsLogin] = useState(true);
+    const [venuesCount, setVenuesCount] = useState<number | null>(null);
+
+    useEffect(() => {
+        statsAPI.get().then(s => setVenuesCount(s.total_venues)).catch(() => setVenuesCount(null));
+    }, []);
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [password2, setPassword2] = useState("");  // ✅ Parolni tasdiqlash
@@ -248,7 +253,7 @@ function LoginContent() {
                         <p style={{fontSize: "13px", color: "rgba(255,255,255,0.35)", lineHeight: 1.6}}>
                             {isLogin
                                 ? "Avval ro'yxatdan o'tgan username va parolingizni kiriting"
-                                : "Ro'yxatdan o'ting va 250+ maydondan foydalaning"}
+                                : `Ro'yxatdan o'ting va ${venuesCount != null ? `${venuesCount}+` : ""} maydondan foydalaning`}
                         </p>
                     </div>
 

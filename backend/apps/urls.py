@@ -6,7 +6,7 @@ from apps.views import (
     UserViewSet, SportTypeViewSet, VenueViewSet, VenueImageViewSet,
     BookingViewSet, PaymentViewSet, ReviewViewSet, FavoriteViewSet,
     VenueBookedSlotsAPIView, UserCreateApiView, CustomTokenObtainPairView,
-    MyVenueStatsAPIView,
+    MyVenueStatsAPIView,PlatformStatsAPIView,
 )
 
 router = SimpleRouter(trailing_slash=False)
@@ -23,6 +23,7 @@ router.register("sport-types", SportTypeViewSet, basename="sport-types")
 urlpatterns = [
                   path("venues/<int:venue_id>/booked-slots", VenueBookedSlotsAPIView.as_view()),
                   path("venues/my-stats", MyVenueStatsAPIView.as_view(), name="venue-my-stats"),
+                  path("stats", PlatformStatsAPIView.as_view(), name="platform-stats"),
                   path("auth/register", UserCreateApiView.as_view()),
                   path("token", CustomTokenObtainPairView.as_view(), name="token_obtain_pair"),
                   path("token/refresh", TokenRefreshView.as_view(), name="token_refresh"),

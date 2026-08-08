@@ -1,7 +1,9 @@
 "use client";
+import { useEffect, useState } from "react";
 import Navbar from "@/components/navbar/Navbar";
 import Footer from "@/components/footer/Footer";
 import { useTheme } from "@/context/ThemeContext";
+import { statsAPI, type PlatformStats } from "@/services/api";
 
 const VALUES = [
     {
@@ -26,15 +28,20 @@ const VALUES = [
     },
 ];
 
-const STATS = [
-    { value: "250+", label: "Sport maydonlari" },
-    { value: "10K+", label: "Faol foydalanuvchilar" },
-    { value: "50K+", label: "Muvaffaqiyatli bronlar" },
-    { value: "4.9★", label: "O'rtacha reyting" },
-];
-
 export default function AboutPage() {
     const { colors } = useTheme();
+    const [platformStats, setPlatformStats] = useState<PlatformStats | null>(null);
+
+    useEffect(() => {
+        statsAPI.get().then(setPlatformStats).catch(() => setPlatformStats(null));
+    }, []);
+
+    const STATS = [
+        { value: platformStats ? `${platformStats.total_venues}+` : "—", label: "Sport maydonlari" },
+        { value: platformStats ? `${platformStats.total_users}+` : "—", label: "Ro'yxatdan o'tgan foydalanuvchilar" },
+        { value: platformStats ? `${platformStats.total_bookings}+` : "—", label: "Muvaffaqiyatli bronlar" },
+        { value: platformStats?.average_rating != null ? `${platformStats.average_rating}★` : "—", label: "O'rtacha reyting" },
+    ];
 
     return (
         <main style={{ background: colors.bg, minHeight: "100vh", color: colors.text }}>

@@ -1,11 +1,13 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { venuesAPI, bookingsAPI } from "@/services/api";
+import { statsAPI } from "@/services/api";
+// Backenddan javob kelmaguncha ko'rsatiladigan boshlang'ich (0) qiymatlar.
+// Real raqamlar useEffect ichida statsAPI.get() orqali bazadan olinadi.
 const STATIC_STATS = [
-  { icon: "🏟️", value: 250,  suffix: "+",  label: "Sport maydonlari" },
-  { icon: "😊", value: 10,   suffix: "K+", label: "Baxtli foydalanuvchilar" },
-  { icon: "📅", value: 50,   suffix: "K+", label: "Bronlar soni" },
-  { icon: "⭐", value: 4.9,  suffix: "",   label: "O'rtacha reyting", isFloat: true },
+  { icon: "🏟️", value: 0, suffix: "+",  label: "Sport maydonlari" },
+  { icon: "😊", value: 0, suffix: "+",  label: "Ro'yxatdan o'tgan foydalanuvchilar" },
+  { icon: "📅", value: 0, suffix: "+",  label: "Muvaffaqiyatli bronlar" },
+  { icon: "⭐", value: 0, suffix: "",   label: "O'rtacha reyting", isFloat: true },
 ];
 function Counter({ target, suffix, isFloat }: { target: number; suffix: string; isFloat?: boolean }) {
   const [count, setCount]   = useState(0);
@@ -44,16 +46,19 @@ function Counter({ target, suffix, isFloat }: { target: number; suffix: string; 
 export default function StatsSection() {
   const [stats, setStats]   = useState(STATIC_STATS);
   const [loaded, setLoaded] = useState(false);
-  // Backend dan real ma'lumotlarni olishga urinish
+  // Backend dan real ma'lumotlarni olish — bu raqamlar to'g'ridan-to'g'ri bazadan hisoblanadi
   useEffect(() => {
-    venuesAPI.getAll({ status: "approved" })
-      .then(res => {
-        setStats(prev => prev.map((s, i) =>
-          i === 0 ? { ...s, value: res.count || 250 } : s
-        ));
+    statsAPI.get()
+      .then(data => {
+        setStats([
+          { icon: "🏟️", value: data.total_venues, suffix: "+", label: "Sport maydonlari" },
+          { icon: "😊", value: data.total_users,   suffix: "+", label: "Ro'yxatdan o'tgan foydalanuvchilar" },
+          { icon: "📅", value: data.total_bookings, suffix: "+", label: "Muvaffaqiyatli bronlar" },
+          { icon: "⭐", value: data.average_rating ?? 0, suffix: "", label: "O'rtacha reyting", isFloat: true },
+        ]);
         setLoaded(true);
       })
-      .catch(() => setLoaded(true)); // Xato bo'lsa static raqamlar qoladi
+      .catch(() => setLoaded(true)); // Xato bo'lsa 0 qiymatlar qoladi
   }, []);
   return (
     <section style={{

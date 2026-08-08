@@ -604,3 +604,33 @@ class FavoriteViewSet(ModelViewSet):
     @extend_schema(summary="Sevimlilardan o'chirish")
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
+
+    @extend_schema(
+        tags=["Stats"],
+        summary="Platforma statistikasi",
+        description="Sayt ishga tushganidan buyon to'plangan real statistika: tasdiqlangan "
+        "maydonlar soni, ro'yxatdan o'tgan foydalanuvchilar soni, sport turidan "
+        "qat'i nazar to'langan (tasdiqlangan) bronlar soni va o'rtacha reyting.",
+    )
+    class PlatformStatsAPIView(APIView):
+        """Ommaviy (login talab qilmaydigan) statistika — bosh sahifa, footer va 'Biz haqimizda'
+        sahifasidagi raqamlar shu yerdan, bevosita bazadan hisoblanadi."""
+
+        permission_classes = [AllowAny]
+
+        def get(self, request):
+            total_venues = Venue.objects.filter(status=Venue.Role.APPROVED).count()
+            total_users = User.objects.filter(is_superuser=False).count()
+            total_bookings = Booking.objects.filter(status=Booking.Status.PAID).count()
+            avg_rating = Review.objects.aggregate(avg=Avg("rating"))["avg"]
+
+            return Response(
+                {
+                    "total_venues": total_venues,
+                    "total_users": total_users,
+                    "total_bookings": total_bookings,
+                    "average_rating": round(avg_rating, 1)
+                    if avg_rating is not None
+                    else None,
+                }
+            )

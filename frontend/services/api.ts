@@ -118,6 +118,12 @@ export interface Payment {
     status: string;
     created_at: string;
 }
+export interface PlatformStats {
+    total_venues: number;
+    total_users: number;
+    total_bookings: number;
+    average_rating: number | null;
+}
 
 export interface PaginatedResponse<T> {
     count: number;
@@ -455,6 +461,15 @@ export const paymentsAPI = {
     getById: (id: number) =>
         apiFetch<Payment>(`/payments/${id}`),
 };
+
+// ════════════════════════════════════════
+//  PLATFORM STATS API (bosh sahifa / footer / about uchun real raqamlar)
+// ════════════════════════════════════════
+export const statsAPI = {
+    /** Sayt bo'yicha umumiy statistika: maydonlar, foydalanuvchilar, bronlar, reyting */
+    get: () => apiFetch<PlatformStats>("/stats"),
+};
+
 // ════════════════════════════════════════
 //  LEGACY EXPORTS (eski kodni buzmaslik)
 // ════════════════════════════════════════
