@@ -19,24 +19,28 @@ interface ThemeColors {
   accentBorder: string;
   glow: string;
   shadow: string;
+  electric: string;
+  electricGlow: string;
 }
 
 const DARK: ThemeColors = {
-  bg:            "#000000",
-  bgSecondary:   "rgba(255,255,255,0.03)",
-  bgCard:        "rgba(255,255,255,0.03)",
-  bgCardHover:   "rgba(255,255,255,0.05)",
-  border:        "rgba(255,255,255,0.07)",
-  borderHover:   "rgba(34,197,94,0.35)",
+  bg:            "#050505",
+  bgSecondary:   "#080A0D",
+  bgCard:        "#0E1117",
+  bgCardHover:   "#141821",
+  border:        "rgba(255,255,255,0.08)",
+  borderHover:   "rgba(57,255,20,0.35)",
   text:          "#ffffff",
-  textSecondary: "rgba(255,255,255,0.6)",
+  textSecondary: "#A0A0A0",
   textMuted:     "rgba(255,255,255,0.3)",
-  accent:        "#22c55e",
-  accentDark:    "#16a34a",
-  accentBg:      "rgba(34,197,94,0.08)",
-  accentBorder:  "rgba(34,197,94,0.2)",
-  glow:          "rgba(34,197,94,0.3)",
+  accent:        "#39FF14",
+  accentDark:    "#00D26A",
+  accentBg:      "rgba(57,255,20,0.08)",
+  accentBorder:  "rgba(57,255,20,0.2)",
+  glow:          "rgba(57,255,20,0.25)",
   shadow:        "rgba(0,0,0,0.6)",
+  electric:      "#00BFFF",
+  electricGlow:  "rgba(0,191,255,0.20)",
 };
 
 const LIGHT: ThemeColors = {
@@ -45,16 +49,18 @@ const LIGHT: ThemeColors = {
   bgCard:        "#ffffff",
   bgCardHover:   "#f1f5f3",
   border:        "rgba(0,0,0,0.08)",
-  borderHover:   "rgba(22,163,74,0.4)",
+  borderHover:   "rgba(0,178,66,0.4)",
   text:          "#0a0f0a",
   textSecondary: "rgba(10,15,10,0.65)",
   textMuted:     "rgba(10,15,10,0.4)",
-  accent:        "#16a34a",
-  accentDark:    "#15803d",
-  accentBg:      "rgba(22,163,74,0.08)",
-  accentBorder:  "rgba(22,163,74,0.25)",
-  glow:          "rgba(22,163,74,0.18)",
+  accent:        "#00B242",
+  accentDark:    "#00913a",
+  accentBg:      "rgba(0,178,66,0.08)",
+  accentBorder:  "rgba(0,178,66,0.25)",
+  glow:          "rgba(0,178,66,0.18)",
   shadow:        "rgba(0,0,0,0.12)",
+  electric:      "#0088CC",
+  electricGlow:  "rgba(0,136,204,0.15)",
 };
 
 interface ThemeContextValue {
@@ -98,7 +104,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   // Flash oldini olish — mount bo'lguncha hech narsa render qilmaymiz
   if (!mounted) {
-  return <body style={{ background: "#000", minHeight: "100vh" }} />;
+  return <body style={{ background: "#050505", minHeight: "100vh" }} />;
 }
 
   return (

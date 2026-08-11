@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import { statsAPI } from "@/services/api";
 // Backenddan javob kelmaguncha ko'rsatiladigan boshlang'ich (0) qiymatlar.
 // Real raqamlar useEffect ichida statsAPI.get() orqali bazadan olinadi.
@@ -35,7 +36,7 @@ function Counter({ target, suffix, isFloat }: { target: number; suffix: string; 
     <div ref={ref} style={{
       fontSize: "clamp(2rem, 4vw, 3rem)",
       fontWeight: 900,
-      color: "#4ade80",
+      color: "#39FF14",
       fontFamily: "var(--font-display, 'Syne', sans-serif)",
       lineHeight: 1,
     }}>
@@ -63,13 +64,19 @@ export default function StatsSection() {
   return (
     <section style={{
       padding: "80px 0",
-      background: "linear-gradient(180deg, rgba(10,14,26,0) 0%, rgba(74,222,128,0.03) 50%, rgba(10,14,26,0) 100%)",
+      background: "linear-gradient(180deg, rgba(5,5,5,0) 0%, rgba(57,255,20,0.03) 50%, rgba(5,5,5,0) 100%)",
       borderTop:    "1px solid rgba(255,255,255,0.06)",
       borderBottom: "1px solid rgba(255,255,255,0.06)",
     }}>
       <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "0 24px" }}>
         {/* Heading */}
-        <div style={{ textAlign: "center", marginBottom: "56px" }}>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          style={{ textAlign: "center", marginBottom: "56px" }}
+        >
           <h2 style={{
             fontFamily: "var(--font-display, 'Syne', sans-serif)",
             fontSize: "clamp(1.5rem, 3vw, 2rem)",
@@ -77,12 +84,12 @@ export default function StatsSection() {
             color: "#f1f5f9",
             marginBottom: "12px",
           }}>
-            Play Arena <span style={{ color: "#4ade80" }}>raqamlarda</span>
+            Play Arena <span style={{ color: "#39FF14" }}>raqamlarda</span>
           </h2>
           <p style={{ color: "#64748b", fontSize: "1rem" }}>
             Toshkentning eng yirik sport bron qilish platformasi
           </p>
-        </div>
+        </motion.div>
         {/* Stats Grid */}
         <div style={{
           display: "grid",
@@ -90,8 +97,14 @@ export default function StatsSection() {
           gap: "24px",
         }}>
           {stats.map((s, i) => (
-            <div key={i} style={{
-              background: "rgba(17,24,39,0.6)",
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: i * 0.1 }}
+              style={{
+              background: "rgba(14,17,23,0.6)",
               border: "1px solid rgba(255,255,255,0.08)",
               borderRadius: "20px",
               padding: "36px 24px",
@@ -101,9 +114,9 @@ export default function StatsSection() {
               cursor: "default",
             }}
               onMouseEnter={e => {
-                (e.currentTarget as HTMLElement).style.borderColor = "rgba(74,222,128,0.3)";
+                (e.currentTarget as HTMLElement).style.borderColor = "rgba(57,255,20,0.3)";
                 (e.currentTarget as HTMLElement).style.transform = "translateY(-4px)";
-                (e.currentTarget as HTMLElement).style.boxShadow = "0 8px 32px rgba(74,222,128,0.1)";
+                (e.currentTarget as HTMLElement).style.boxShadow = "0 8px 32px rgba(57,255,20,0.1)";
               }}
               onMouseLeave={e => {
                 (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.08)";
@@ -115,7 +128,7 @@ export default function StatsSection() {
               <div style={{
                 fontSize: "2.5rem",
                 marginBottom: "16px",
-                filter: "drop-shadow(0 0 12px rgba(74,222,128,0.3))",
+                filter: "drop-shadow(0 0 12px rgba(57,255,20,0.3))",
               }}>
                 {s.icon}
               </div>
@@ -130,7 +143,7 @@ export default function StatsSection() {
               }}>
                 {s.label}
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>

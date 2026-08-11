@@ -83,8 +83,8 @@ export default function Navbar() {
         animate={{ y: 0 }}
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           scrolled
-            ? "bg-[#08121dde]/90 backdrop-blur-xl border-b border-white/10 shadow-lg shadow-black/20"
-            : "bg-gradient-to-b from-[#08121d]/80 to-transparent backdrop-blur-sm"
+            ? "bg-[#050505ee]/90 backdrop-blur-xl border-b border-white/10 shadow-lg shadow-black/20"
+            : "bg-gradient-to-b from-[#050505]/80 to-transparent backdrop-blur-sm"
         }`}
       >
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
@@ -100,7 +100,7 @@ export default function Navbar() {
             <button
               onClick={() => setSearchOpen(true)}
               title="Qidirish (Ctrl+K)"
-              className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:text-emerald-400 hover:border-emerald-500/30 transition active:scale-95 cursor-pointer"
+              className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:text-neon hover:border-neon/30 transition active:scale-95 cursor-pointer"
             >
               <Search size={18} />
             </button>
@@ -119,10 +119,10 @@ export default function Navbar() {
               <button
                 onClick={() => setShowNotification(!showNotification)}
                 title="Bildirishnomalar"
-                className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:text-emerald-400 transition active:scale-95 cursor-pointer"
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:text-neon transition active:scale-95 cursor-pointer"
               >
                 <Bell size={18} />
-                <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-neon animate-pulse"></span>
               </button>
 
               {/* Notification Popover */}
@@ -132,7 +132,7 @@ export default function Navbar() {
                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="absolute right-0 mt-2 w-72 rounded-2xl border border-white/10 bg-[#0c1927] p-4 shadow-2xl z-50"
+                    className="absolute right-0 mt-2 w-72 rounded-2xl border border-white/10 bg-[#0E1117] p-4 shadow-2xl z-50"
                   >
                     <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-2">
                       <span className="text-xs font-bold text-white">Bildirishnomalar</span>
@@ -155,20 +155,20 @@ export default function Navbar() {
             <Link
               href="/stats"
               title="Statistikalarim"
-              className="hidden md:flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:border-emerald-500/30 transition group active:scale-95 cursor-pointer"
+              className="hidden md:flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:border-neon/30 transition group active:scale-95 cursor-pointer"
             >
-              <BarChart3 size={18} className="group-hover:text-emerald-400 transition" />
+              <BarChart3 size={18} className="group-hover:text-neon transition" />
             </Link>
 
             {/* Favorites Link */}
             <Link
               href="/favorites"
               title="Sevimlilar"
-              className="hidden md:flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 relative hover:border-emerald-500/30 transition active:scale-95 cursor-pointer"
+              className="hidden md:flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 relative hover:border-neon/30 transition active:scale-95 cursor-pointer"
             >
               <Heart size={18} />
               {favoriteCount > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-emerald-500 px-1 text-[10px] font-extrabold text-black">
+                <span className="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-neon px-1 text-[10px] font-extrabold text-black">
                   {favoriteCount}
                 </span>
               )}
@@ -181,13 +181,13 @@ export default function Navbar() {
                 onChange={(e) => setLanguage(e.target.value as Language)}
                 className="appearance-none rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white outline-none transition hover:bg-white/10 cursor-pointer pr-7"
               >
-                <option value="uz" className="bg-[#08121d]">
+                <option value="uz" className="bg-[#050505]">
                   🇺🇿 UZ
                 </option>
-                <option value="ru" className="bg-[#08121d]">
+                <option value="ru" className="bg-[#050505]">
                   🇷🇺 RU
                 </option>
-                <option value="en" className="bg-[#08121d]">
+                <option value="en" className="bg-[#050505]">
                   🇬🇧 EN
                 </option>
               </select>
@@ -198,14 +198,14 @@ export default function Navbar() {
             {isAuth ? (
               <Link
                 href="/profile"
-                className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 font-extrabold text-black shadow-lg shadow-emerald-500/20 hover:scale-105 transition"
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-neon to-electric font-extrabold text-black shadow-lg shadow-neon/20 hover:scale-105 transition"
               >
                 {initial}
               </Link>
             ) : (
               <Link
                 href="/login"
-                className="flex items-center rounded-xl bg-gradient-to-r from-emerald-400 to-teal-500 px-4 py-2 text-xs sm:text-sm font-extrabold text-black transition hover:scale-105 shadow-md shadow-emerald-500/10"
+                className="flex items-center rounded-xl bg-gradient-to-r from-neon to-electric px-4 py-2 text-xs sm:text-sm font-extrabold text-black transition hover:scale-105 shadow-md shadow-neon/10"
               >
                 {t.login}
               </Link>
@@ -215,7 +215,7 @@ export default function Navbar() {
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
               title="Menyu"
-              className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 hover:text-emerald-400 transition active:scale-95 cursor-pointer"
+              className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 hover:text-neon transition active:scale-95 cursor-pointer"
             >
               {mobileOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
@@ -230,7 +230,7 @@ export default function Navbar() {
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.25 }}
-              className="overflow-hidden border-t border-white/10 bg-[#08121d]/95 backdrop-blur-2xl"
+              className="overflow-hidden border-t border-white/10 bg-[#050505]/95 backdrop-blur-2xl"
             >
               <div className="mx-auto max-w-7xl flex flex-col gap-3 p-6">
                 <NavLinks
@@ -245,9 +245,9 @@ export default function Navbar() {
                       setMobileOpen(false);
                       setSearchOpen(true);
                     }}
-                    className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-xs font-semibold text-slate-200 hover:border-emerald-500/30"
+                    className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-xs font-semibold text-slate-200 hover:border-neon/30"
                   >
-                    <Search size={16} className="text-emerald-400" />
+                    <Search size={16} className="text-neon" />
                     <span>Qidiruv</span>
                   </button>
 
@@ -255,7 +255,7 @@ export default function Navbar() {
                     onClick={() => {
                       toggleTheme();
                     }}
-                    className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-xs font-semibold text-slate-200 hover:border-emerald-500/30"
+                    className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-xs font-semibold text-slate-200 hover:border-neon/30"
                   >
                     {theme === "dark" ? <Sun size={16} className="text-amber-400" /> : <Moon size={16} />}
                     <span>{theme === "dark" ? "Kunduzi" : "Tungi"}</span>
@@ -265,10 +265,10 @@ export default function Navbar() {
                 <Link
                   href="/stats"
                   onClick={() => setMobileOpen(false)}
-                  className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200 hover:border-emerald-500/30"
+                  className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200 hover:border-neon/30"
                 >
                   <span className="flex items-center gap-3">
-                    <BarChart3 size={18} className="text-emerald-400" />
+                    <BarChart3 size={18} className="text-neon" />
                     Statistikalarim
                   </span>
                 </Link>
@@ -276,14 +276,14 @@ export default function Navbar() {
                 <Link
                   href="/favorites"
                   onClick={() => setMobileOpen(false)}
-                  className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200 hover:border-emerald-500/30"
+                  className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200 hover:border-neon/30"
                 >
                   <span className="flex items-center gap-3">
                     <Heart size={18} className="text-rose-400" />
                     Sevimlilar
                   </span>
                   {favoriteCount > 0 && (
-                    <span className="rounded-full bg-emerald-500 px-2 py-0.5 text-xs font-bold text-black">
+                    <span className="rounded-full bg-neon px-2 py-0.5 text-xs font-bold text-black">
                       {favoriteCount}
                     </span>
                   )}
@@ -293,7 +293,7 @@ export default function Navbar() {
                   <Link
                     href="/login"
                     onClick={() => setMobileOpen(false)}
-                    className="mt-2 flex items-center justify-center rounded-xl bg-gradient-to-r from-emerald-400 to-teal-500 py-3 font-bold text-black shadow-lg shadow-emerald-500/20"
+                    className="mt-2 flex items-center justify-center rounded-xl bg-gradient-to-r from-neon to-electric py-3 font-bold text-black shadow-lg shadow-neon/20"
                   >
                     {t.login}
                   </Link>
@@ -301,7 +301,7 @@ export default function Navbar() {
                   <Link
                     href="/profile"
                     onClick={() => setMobileOpen(false)}
-                    className="mt-2 flex items-center justify-center rounded-xl border border-emerald-500/50 py-3 font-bold text-emerald-400 hover:bg-emerald-500/10"
+                    className="mt-2 flex items-center justify-center rounded-xl border border-neon/50 py-3 font-bold text-neon hover:bg-neon/10"
                   >
                     <User className="mr-2 h-5 w-5" />
                     Mening Profilim
