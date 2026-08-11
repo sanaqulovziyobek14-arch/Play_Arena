@@ -2,6 +2,7 @@
 
 import {useState, useEffect, useCallback} from "react";
 import Link from "next/link";
+import {motion} from "framer-motion";
 import {useRouter} from "next/navigation";
 import Navbar from "@/components/navbar/Navbar";
 import Footer from "@/components/footer/Footer";
@@ -228,13 +229,16 @@ export default function VenuesClient() {
     ].filter(Boolean).length;
 
     return (
-        <main style={{background: "#000", minHeight: "100vh", color: "#fff"}}>
+        <main style={{background: "#050505", minHeight: "100vh", color: "#fff"}}>
             <Navbar/>
 
             <div style={{marginTop: "64px", padding: "28px 32px 0", maxWidth: "1440px", margin: "64px auto 0"}}>
-                <h1 style={{fontSize: "28px", fontWeight: 900, letterSpacing: "-0.02em", marginBottom: "4px"}}>
+                <motion.h1
+                    initial={{opacity: 0, y: 12}} animate={{opacity: 1, y: 0}} transition={{duration: 0.5}}
+                    style={{fontSize: "28px", fontWeight: 900, letterSpacing: "-0.02em", marginBottom: "4px"}}
+                >
                     Maydonlar katalogi
-                </h1>
+                </motion.h1>
                 <p style={{fontSize: "13px", color: "rgba(255,255,255,0.3)"}}>
                     {loading ? "Yuklanmoqda..." : `${total} ta maydon topildi`}
                 </p>
@@ -247,7 +251,7 @@ export default function VenuesClient() {
                 position: "sticky",
                 top: "64px",
                 zIndex: 10,
-                background: "rgba(0,0,0,0.92)",
+                background: "rgba(5,5,5,0.92)",
                 backdropFilter: "blur(16px)",
                 borderBottom: "1px solid rgba(255,255,255,0.05)",
             }}>
@@ -278,7 +282,7 @@ export default function VenuesClient() {
                                 color: "#fff", fontSize: "13px", outline: "none", transition: "border .15s",
                             }}
                             onFocus={e => {
-                                e.target.style.borderColor = "rgba(34,197,94,0.5)";
+                                e.target.style.borderColor = "rgba(57,255,20,0.5)";
                             }}
                             onBlur={e => {
                                 e.target.style.borderColor = "rgba(255,255,255,0.08)";
@@ -311,7 +315,7 @@ export default function VenuesClient() {
                         cursor: "pointer",
                     }}>
                         {SORT_OPTIONS.map(o => (
-                            <option key={o.key} value={o.key} style={{background: "#111"}}>{o.label}</option>
+                            <option key={o.key} value={o.key} style={{background: "#0E1117"}}>{o.label}</option>
                         ))}
                     </select>
 
@@ -323,9 +327,9 @@ export default function VenuesClient() {
                         padding: "11px 16px",
                         borderRadius: "12px",
                         cursor: "pointer",
-                        border: showFilters ? "1.5px solid #22c55e" : "1px solid rgba(255,255,255,0.08)",
-                        background: showFilters ? "rgba(34,197,94,0.08)" : "rgba(255,255,255,0.05)",
-                        color: showFilters ? "#22c55e" : "rgba(255,255,255,0.7)",
+                        border: showFilters ? "1.5px solid #39FF14" : "1px solid rgba(255,255,255,0.08)",
+                        background: showFilters ? "rgba(57,255,20,0.08)" : "rgba(255,255,255,0.05)",
+                        color: showFilters ? "#39FF14" : "rgba(255,255,255,0.7)",
                         fontSize: "13px",
                         fontWeight: 600,
                         transition: "all .15s",
@@ -346,7 +350,7 @@ export default function VenuesClient() {
                         Filtr
                         {activeFilterCount > 0 && (
                             <span style={{
-                                position: "absolute", top: "-6px", right: "-6px", background: "#22c55e", color: "#000",
+                                position: "absolute", top: "-6px", right: "-6px", background: "#39FF14", color: "#000",
                                 fontSize: "10px", fontWeight: 800, width: "18px", height: "18px", borderRadius: "50%",
                                 display: "flex", alignItems: "center", justifyContent: "center",
                             }}>{activeFilterCount}</span>
@@ -432,7 +436,7 @@ export default function VenuesClient() {
                                 height: "20px",
                                 borderRadius: "6px",
                                 border: hasWifi ? "none" : "1.5px solid rgba(255,255,255,0.2)",
-                                background: hasWifi ? "linear-gradient(135deg,#22c55e,#16a34a)" : "transparent",
+                                background: hasWifi ? "linear-gradient(135deg,#39FF14,#00D26A)" : "transparent",
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "center",
@@ -447,7 +451,7 @@ export default function VenuesClient() {
                                 height: "20px",
                                 borderRadius: "6px",
                                 border: hasParking ? "none" : "1.5px solid rgba(255,255,255,0.2)",
-                                background: hasParking ? "linear-gradient(135deg,#22c55e,#16a34a)" : "transparent",
+                                background: hasParking ? "linear-gradient(135deg,#39FF14,#00D26A)" : "transparent",
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "center",
@@ -486,9 +490,9 @@ export default function VenuesClient() {
                                         padding: "9px 12px",
                                         borderRadius: "10px",
                                         textAlign: "left",
-                                        border: !activeSport ? "1.5px solid #22c55e" : "1px solid rgba(255,255,255,0.07)",
-                                        background: !activeSport ? "rgba(34,197,94,0.08)" : "rgba(255,255,255,0.02)",
-                                        color: !activeSport ? "#22c55e" : "rgba(255,255,255,0.5)",
+                                        border: !activeSport ? "1.5px solid #39FF14" : "1px solid rgba(255,255,255,0.07)",
+                                        background: !activeSport ? "rgba(57,255,20,0.08)" : "rgba(255,255,255,0.02)",
+                                        color: !activeSport ? "#39FF14" : "rgba(255,255,255,0.5)",
                                         fontSize: "13px",
                                         fontWeight: 600,
                                         cursor: "pointer",
@@ -506,9 +510,9 @@ export default function VenuesClient() {
                                         window.history.pushState({}, "", `/venues?sport=${sport.id}`);
                                     }} style={{
                                         width: "100%", padding: "9px 12px", borderRadius: "10px", textAlign: "left",
-                                        border: isAct ? "1.5px solid #22c55e" : "1px solid rgba(255,255,255,0.07)",
-                                        background: isAct ? "rgba(34,197,94,0.08)" : "rgba(255,255,255,0.02)",
-                                        color: isAct ? "#22c55e" : "rgba(255,255,255,0.5)",
+                                        border: isAct ? "1.5px solid #39FF14" : "1px solid rgba(255,255,255,0.07)",
+                                        background: isAct ? "rgba(57,255,20,0.08)" : "rgba(255,255,255,0.02)",
+                                        color: isAct ? "#39FF14" : "rgba(255,255,255,0.5)",
                                         fontSize: "13px", fontWeight: 600, cursor: "pointer",
                                         display: "flex", alignItems: "center", gap: "8px",
                                     }}>
@@ -526,21 +530,38 @@ export default function VenuesClient() {
                         <div style={{
                             display: "grid",
                             gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))",
-                            gap: "14px"
+                            gap: "16px"
                         }}>
                             {[...Array(6)].map((_, i) => (
                                 <div key={i} style={{
-                                    height: "240px",
-                                    borderRadius: "14px",
-                                    background: "rgba(255,255,255,0.04)",
-                                    animation: "shimmer 1.5s infinite"
-                                }}/>
+                                    borderRadius: "18px",
+                                    overflow: "hidden",
+                                    border: "1px solid rgba(255,255,255,0.07)",
+                                    background: "rgba(14,17,23,0.6)",
+                                }}>
+                                    <div style={{height: "180px", background: "rgba(255,255,255,0.05)", animation: "shimmer 1.5s infinite"}} />
+                                    <div style={{padding: "14px", display: "flex", flexDirection: "column", gap: "8px"}}>
+                                        <div style={{height: "12px", width: "70%", borderRadius: "6px", background: "rgba(255,255,255,0.06)", animation: "shimmer 1.5s infinite"}} />
+                                        <div style={{height: "10px", width: "50%", borderRadius: "6px", background: "rgba(255,255,255,0.05)", animation: "shimmer 1.5s infinite"}} />
+                                        <div style={{height: "14px", width: "40%", borderRadius: "6px", background: "rgba(255,255,255,0.06)", animation: "shimmer 1.5s infinite", marginTop: "4px"}} />
+                                    </div>
+                                </div>
                             ))}
                         </div>
                     )}
 
                     {!loading && venues.length === 0 && (
-                        <div style={{textAlign: "center", padding: "80px 20px"}}>
+                        <motion.div
+                            initial={{opacity: 0, y: 12}} animate={{opacity: 1, y: 0}}
+                            style={{textAlign: "center", padding: "80px 20px"}}
+                        >
+                            <div style={{
+                                width: "64px", height: "64px", margin: "0 auto 16px",
+                                borderRadius: "50%", background: "rgba(57,255,20,0.08)",
+                                border: "1px solid rgba(57,255,20,0.15)",
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                fontSize: "26px",
+                            }}>🔍</div>
                             <h3 style={{fontSize: "18px", fontWeight: 700, marginBottom: "8px"}}>Hech narsa
                                 topilmadi</h3>
                             <p style={{
@@ -553,53 +574,62 @@ export default function VenuesClient() {
                                 borderRadius: "10px",
                                 border: "none",
                                 cursor: "pointer",
-                                background: "linear-gradient(135deg,#22c55e,#16a34a)",
-                                color: "#fff",
+                                background: "linear-gradient(135deg,#39FF14,#00D26A)",
+                                color: "#050505",
                                 fontSize: "13px",
                                 fontWeight: 700
                             }}>
                                 Filtrlarni tozalash
                             </button>
-                        </div>
+                        </motion.div>
                     )}
 
                     {!loading && venues.length > 0 && (
-                        <div style={{
+                        <motion.div
+                            initial="hidden" animate="show"
+                            variants={{ hidden: {}, show: { transition: { staggerChildren: 0.05 } } }}
+                            style={{
                             display: "grid",
                             gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))",
-                            gap: "14px"
+                            gap: "16px"
                         }}>
                             {venues.map(venue => {
                                 const style = getStyle(venue.sport_name);
                                 const isFav = Boolean(favMap[venue.id]);
                                 const rating = (venue as any).rating && Number((venue as any).rating) > 0 ? Number((venue as any).rating) : 0;
                                 return (
-                                    <Link key={venue.id} href={`/venues/${venue.id}`}
+                                    <motion.div
+                                        key={venue.id}
+                                        variants={{ hidden: {opacity: 0, y: 20}, show: {opacity: 1, y: 0} }}
+                                    >
+                                    <Link href={`/venues/${venue.id}`}
                                           style={{textDecoration: "none", display: "block"}}>
                                         <div
                                             style={{
-                                                borderRadius: "14px",
+                                                borderRadius: "18px",
                                                 overflow: "hidden",
                                                 border: "1px solid rgba(255,255,255,0.07)",
-                                                background: "rgba(255,255,255,0.02)",
-                                                transition: "all .2s",
+                                                background: "rgba(14,17,23,0.6)",
+                                                transition: "all .25s",
                                                 cursor: "pointer"
                                             }}
                                             onMouseEnter={e => {
                                                 const el = e.currentTarget as HTMLDivElement;
-                                                el.style.border = "1px solid rgba(34,197,94,0.35)";
+                                                el.style.border = "1px solid rgba(57,255,20,0.35)";
                                                 el.style.transform = "translateY(-4px)";
+                                                el.style.boxShadow = "0 12px 32px rgba(57,255,20,0.1)";
                                             }}
                                             onMouseLeave={e => {
                                                 const el = e.currentTarget as HTMLDivElement;
                                                 el.style.border = "1px solid rgba(255,255,255,0.07)";
                                                 el.style.transform = "translateY(0)";
+                                                el.style.boxShadow = "none";
                                             }}
                                         >
                                             {/* Image Frame */}
                                             <div style={{
                                                 position: "relative",
-                                                height: "160px",
+                                                height: "190px",
                                                 background: style.bg,
                                                 display: "flex",
                                                 alignItems: "center",
@@ -617,6 +647,28 @@ export default function VenuesClient() {
                                                 ) : (
                                                     <SportIcon name={venue.sport_name || "default"}
                                                                className="w-12 h-12 opacity-30"/>
+                                                )}
+
+                                                {/* Rating asosida — real ma'lumot, "Mashhur" belgisi */}
+                                                {rating >= 4.5 && (
+                                                    <span style={{
+                                                        position: "absolute",
+                                                        top: "10px",
+                                                        left: "10px",
+                                                        zIndex: 2,
+                                                        background: "rgba(0,0,0,0.65)",
+                                                        border: "1px solid rgba(251,191,36,0.4)",
+                                                        color: "#fbbf24",
+                                                        fontSize: "10px",
+                                                        fontWeight: 700,
+                                                        padding: "3px 9px",
+                                                        borderRadius: "6px",
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        gap: "3px",
+                                                    }}>
+                                                        🔥 Mashhur
+                                                    </span>
                                                 )}
 
                                                 {/* Favorite button */}
@@ -649,9 +701,9 @@ export default function VenuesClient() {
                                                         bottom: "10px",
                                                         left: "10px",
                                                         zIndex: 2,
-                                                        background: "rgba(34,197,94,0.15)",
-                                                        border: "1px solid rgba(34,197,94,0.3)",
-                                                        color: "#22c55e",
+                                                        background: "rgba(57,255,20,0.15)",
+                                                        border: "1px solid rgba(57,255,20,0.3)",
+                                                        color: "#39FF14",
                                                         fontSize: "10px",
                                                         fontWeight: 700,
                                                         padding: "3px 9px",
@@ -698,7 +750,7 @@ export default function VenuesClient() {
                                                     alignItems: "center",
                                                     justifyContent: "space-between"
                                                 }}>
-                                                    <div style={{fontSize: "14px", fontWeight: 800, color: "#22c55e"}}>
+                                                    <div style={{fontSize: "14px", fontWeight: 800, color: "#39FF14"}}>
                                                         {Number(venue.price).toLocaleString()} <span style={{
                                                         fontSize: "10px",
                                                         color: "rgba(255,255,255,0.25)",
@@ -708,9 +760,9 @@ export default function VenuesClient() {
                                                     <span style={{
                                                         fontSize: "11px",
                                                         fontWeight: 600,
-                                                        color: "#22c55e",
-                                                        background: "rgba(34,197,94,0.08)",
-                                                        border: "1px solid rgba(34,197,94,0.15)",
+                                                        color: "#39FF14",
+                                                        background: "rgba(57,255,20,0.08)",
+                                                        border: "1px solid rgba(57,255,20,0.15)",
                                                         borderRadius: "6px",
                                                         padding: "3px 8px"
                                                     }}>
@@ -720,9 +772,10 @@ export default function VenuesClient() {
                                             </div>
                                         </div>
                                     </Link>
+                                    </motion.div>
                                 );
                             })}
-                        </div>
+                        </motion.div>
                     )}
                 </div>
             </div>
@@ -732,10 +785,10 @@ export default function VenuesClient() {
         @keyframes shimmer { 0%,100%{opacity:.6} 50%{opacity:.3} }
         input[type=number]::-webkit-outer-spin-button,
         input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
-        select option { background:#111; color:#fff; }
+        select option { background:#0E1117; color:#fff; }
         ::-webkit-scrollbar{width:4px;height:4px}
         ::-webkit-scrollbar-track{background:transparent}
-        ::-webkit-scrollbar-thumb{background:rgba(34,197,94,0.2);border-radius:2px}
+        ::-webkit-scrollbar-thumb{background:rgba(57,255,20,0.2);border-radius:2px}
       `}</style>
         </main>
     );

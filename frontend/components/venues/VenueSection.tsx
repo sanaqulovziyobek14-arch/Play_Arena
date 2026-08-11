@@ -126,7 +126,7 @@ export default function VenueSection() {
                         Yaqin maydonlar
                     </h2>
                     <Link href="/venues" style={{
-                        fontSize: "13px", color: "#22c55e", fontWeight: 600, textDecoration: "none",
+                        fontSize: "13px", color: "#39FF14", fontWeight: 600, textDecoration: "none",
                         display: "flex", alignItems: "center", gap: "4px",
                     }}>
                         Barchasini ko&apos;rish →
@@ -181,7 +181,7 @@ export default function VenueSection() {
                                         transition: "all .2s", cursor: "pointer",
                                     }}
                                          onMouseEnter={e => {
-                                             (e.currentTarget as HTMLDivElement).style.border = "1px solid rgba(34,197,94,0.35)";
+                                             (e.currentTarget as HTMLDivElement).style.border = "1px solid rgba(57,255,20,0.35)";
                                              (e.currentTarget as HTMLDivElement).style.transform = "translateY(-3px)";
                                              (e.currentTarget as HTMLDivElement).style.boxShadow = "0 12px 40px rgba(0,0,0,0.6)";
                                          }}
@@ -233,9 +233,9 @@ export default function VenueSection() {
                                                     position: "absolute",
                                                     bottom: "10px",
                                                     left: "10px",
-                                                    background: "rgba(34,197,94,0.15)",
-                                                    border: "1px solid rgba(34,197,94,0.3)",
-                                                    color: "#22c55e",
+                                                    background: "rgba(57,255,20,0.15)",
+                                                    border: "1px solid rgba(57,255,20,0.3)",
+                                                    color: "#39FF14",
                                                     fontSize: "10px",
                                                     fontWeight: 700,
                                                     padding: "3px 9px",
@@ -272,7 +272,7 @@ export default function VenueSection() {
                           </span>
                                                 )}
                                             </div>
-                                            <div style={{fontSize: "14px", fontWeight: 800, color: "#22c55e"}}>
+                                            <div style={{fontSize: "14px", fontWeight: 800, color: "#39FF14"}}>
                                                 {Number(venue.price).toLocaleString()} <span style={{
                                                 fontSize: "10px",
                                                 color: "rgba(255,255,255,0.3)",
@@ -330,12 +330,12 @@ export default function VenueSection() {
                                         minWidth: "36px", height: "36px", padding: "0 10px",
                                         borderRadius: "10px",
                                         border: p === page
-                                            ? "1px solid #22c55e"
+                                            ? "1px solid #39FF14"
                                             : "1px solid rgba(255,255,255,0.1)",
                                         background: p === page
-                                            ? "linear-gradient(135deg,#22c55e,#16a34a)"
+                                            ? "linear-gradient(135deg,#39FF14,#00D26A)"
                                             : "rgba(255,255,255,0.03)",
-                                        color: p === page ? "#0a0e1a" : "#fff",
+                                        color: p === page ? "#050505" : "#fff",
                                         fontWeight: 800,
                                         fontSize: "13px",
                                         cursor: "pointer",
@@ -368,7 +368,7 @@ export default function VenueSection() {
                 {!loading && (
                     <div style={{
                         marginTop: "32px",
-                        background: "rgba(34,197,94,0.04)", border: "1px solid rgba(34,197,94,0.12)",
+                        background: "rgba(57,255,20,0.04)", border: "1px solid rgba(57,255,20,0.12)",
                         borderRadius: "14px", padding: "20px 24px",
                         display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px",
                     }}>
@@ -382,7 +382,7 @@ export default function VenueSection() {
                         </div>
                         <Link href="/venues/create" style={{
                             display: "inline-flex", alignItems: "center", gap: "6px",
-                            background: "linear-gradient(135deg,#22c55e,#16a34a)",
+                            background: "linear-gradient(135deg,#39FF14,#00D26A)",
                             color: "#fff", fontSize: "12px", fontWeight: 700,
                             padding: "10px 20px", borderRadius: "10px", textDecoration: "none",
                             whiteSpace: "nowrap", flexShrink: 0,
