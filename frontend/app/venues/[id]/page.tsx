@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 
 import * as React from "react";
 import {useState, useEffect, useCallback, use} from "react";
+import {motion} from "framer-motion";
 import {useRouter} from "next/navigation";
 import Navbar from "@/components/navbar/Navbar";
 import Footer from "@/components/footer/Footer";
@@ -132,7 +133,7 @@ function PaymentModal({
             if (!paid && !paying) onClose();
         }}>
             <div style={{
-                background: "#0a0a0a",
+                background: "#0E1117",
                 border: "1px solid rgba(255,255,255,0.08)",
                 borderRadius: "20px",
                 padding: "28px",
@@ -180,8 +181,8 @@ function PaymentModal({
                                 style={{
                                     padding: "12px",
                                     borderRadius: "10px",
-                                    border: method === "click" ? "2px solid #22c55e" : "1px solid rgba(255,255,255,0.12)",
-                                    background: method === "click" ? "rgba(34,197,94,0.1)" : "rgba(255,255,255,0.03)",
+                                    border: method === "click" ? "2px solid #39FF14" : "1px solid rgba(255,255,255,0.12)",
+                                    background: method === "click" ? "rgba(57,255,20,0.1)" : "rgba(255,255,255,0.03)",
                                     color: "#fff",
                                     fontWeight: 700,
                                     fontSize: "13px",
@@ -195,8 +196,8 @@ function PaymentModal({
                                 style={{
                                     padding: "12px",
                                     borderRadius: "10px",
-                                    border: method === "payme" ? "2px solid #22c55e" : "1px solid rgba(255,255,255,0.12)",
-                                    background: method === "payme" ? "rgba(34,197,94,0.1)" : "rgba(255,255,255,0.03)",
+                                    border: method === "payme" ? "2px solid #39FF14" : "1px solid rgba(255,255,255,0.12)",
+                                    background: method === "payme" ? "rgba(57,255,20,0.1)" : "rgba(255,255,255,0.03)",
                                     color: "#fff",
                                     fontWeight: 700,
                                     fontSize: "13px",
@@ -224,7 +225,7 @@ function PaymentModal({
                             padding: "14px",
                             borderRadius: "12px",
                             border: "none",
-                            background: !method ? "rgba(255,255,255,0.08)" : "linear-gradient(135deg,#22c55e,#16a34a)",
+                            background: !method ? "rgba(255,255,255,0.08)" : "linear-gradient(135deg,#39FF14,#00D26A)",
                             color: "#fff",
                             fontWeight: 800,
                             cursor: !method || paying ? "not-allowed" : "pointer",
@@ -235,7 +236,7 @@ function PaymentModal({
                     </>
                 )}
                 {paid && <div
-                    style={{color: "#22c55e", fontWeight: 800, textAlign: "center", fontSize: "18px"}}>Muvaffaqiyatli
+                    style={{color: "#39FF14", fontWeight: 800, textAlign: "center", fontSize: "18px"}}>Muvaffaqiyatli
                     to'landi!</div>}
             </div>
         </div>
@@ -262,6 +263,7 @@ export default function VenueDetailPage(props: PageProps) {
     const [venue, setVenue] = useState<Venue | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [activeImage, setActiveImage] = useState(0);
     const [dates] = useState(() => generateDates(7));
     const [activeDate, setActiveDate] = useState(0);
     const [slots, setSlots] = useState<string[]>([]);
@@ -414,15 +416,34 @@ export default function VenueDetailPage(props: PageProps) {
         handleBook(`${customStart}:00`, `${customEnd}:00`);
     };
 
-    if (loading) return <div style={{background: "#000", minHeight: "100vh"}}><Navbar/></div>;
-    if (error || !venue) return <div style={{background: "#000", minHeight: "100vh"}}><Navbar/><p
-        style={{color: "#fff", textAlign: "center", marginTop: "100px"}}>{error}</p></div>;
+    if (loading) return (
+        <div style={{background: "#050505", minHeight: "100vh"}}>
+            <Navbar/>
+            <div style={{display: "flex", alignItems: "center", justifyContent: "center", height: "60vh"}}>
+                <div style={{
+                    width: "40px", height: "40px", borderRadius: "50%",
+                    border: "3px solid rgba(57,255,20,0.15)", borderTopColor: "#39FF14",
+                    animation: "spin 0.8s linear infinite",
+                }}/>
+                <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+            </div>
+        </div>
+    );
+    if (error || !venue) return (
+        <div style={{background: "#050505", minHeight: "100vh", color: "#fff"}}>
+            <Navbar/>
+            <div style={{textAlign: "center", marginTop: "120px", padding: "0 20px"}}>
+                <div style={{fontSize: "40px", marginBottom: "12px"}}>😕</div>
+                <p style={{color: "rgba(255,255,255,0.5)", fontSize: "15px"}}>{error || "Maydon topilmadi"}</p>
+            </div>
+        </div>
+    );
 
     const price = Number(venue.price);
     const currentSportName = venue?.sport_name || venue?.sport_name || "";
 
     return (
-        <main style={{background: "#000", minHeight: "100vh", color: "#fff"}}>
+        <main style={{background: "#050505", minHeight: "100vh", color: "#fff"}}>
             <Navbar/>
             <div style={{
                 marginTop: "64px",
@@ -445,18 +466,18 @@ export default function VenueDetailPage(props: PageProps) {
             <section style={{padding: "32px 32px 64px", maxWidth: "1440px", margin: "0 auto"}}>
                 <div style={{display: "grid", gridTemplateColumns: "1fr 420px", gap: "32px", alignItems: "start"}}>
 
-                    <div>
-                        <div style={{borderRadius: "16px", overflow: "hidden", marginBottom: "20px"}}>
+                    <motion.div initial={{opacity: 0, y: 16}} animate={{opacity: 1, y: 0}} transition={{duration: 0.5}}>
+                        <div style={{borderRadius: "20px", overflow: "hidden", marginBottom: "10px"}}>
                             <div style={{
                                 position: "relative",
                                 height: "380px",
-                                background: "#111",
+                                background: "#0E1117",
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "center"
                             }}>
                                 {venue.images?.length > 0 ? (
-                                    <img src={venue.images[0]?.image} alt={venue.name}
+                                    <img src={venue.images[activeImage]?.image || venue.images[0]?.image} alt={venue.name}
                                          style={{width: "100%", height: "100%", objectFit: "cover"}}/>
                                 ) : (
                                     <SportIcon sportName={currentSportName} className="w-24 h-24 text-white"/>
@@ -464,10 +485,32 @@ export default function VenueDetailPage(props: PageProps) {
                             </div>
                         </div>
 
+                        {/* Thumbnail gallery — faqat bir nechta rasm bo'lsa (real bazadagi rasmlar) */}
+                        {venue.images && venue.images.length > 1 && (
+                            <div style={{display: "flex", gap: "8px", marginBottom: "20px", overflowX: "auto", paddingBottom: "4px"}}>
+                                {venue.images.map((img, idx) => (
+                                    <button key={img.id ?? idx} onClick={() => setActiveImage(idx)} style={{
+                                        flexShrink: 0,
+                                        width: "72px",
+                                        height: "56px",
+                                        borderRadius: "10px",
+                                        overflow: "hidden",
+                                        padding: 0,
+                                        cursor: "pointer",
+                                        border: activeImage === idx ? "2px solid #39FF14" : "1px solid rgba(255,255,255,0.1)",
+                                        opacity: activeImage === idx ? 1 : 0.55,
+                                        transition: "all .15s",
+                                    }}>
+                                        <img src={img.image} alt="" style={{width: "100%", height: "100%", objectFit: "cover"}}/>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+
                         <div style={{
                             background: "rgba(255,255,255,0.03)",
                             border: "1px solid rgba(255,255,255,0.07)",
-                            borderRadius: "16px",
+                            borderRadius: "18px",
                             padding: "22px"
                         }}>
                             <h2 style={{fontSize: "20px", fontWeight: 800, marginBottom: "12px"}}>{venue.name}</h2>
@@ -501,18 +544,18 @@ export default function VenueDetailPage(props: PageProps) {
                                 ))}
                             </div>
                         </div>
-                    </div>
+                    </motion.div>
 
-                    <div style={{
+                    <motion.div initial={{opacity: 0, y: 16}} animate={{opacity: 1, y: 0}} transition={{duration: 0.5, delay: 0.1}} style={{
                         background: "rgba(255,255,255,0.02)",
                         border: "1px solid rgba(255,255,255,0.06)",
-                        borderRadius: "16px",
+                        borderRadius: "18px",
                         padding: "24px"
                     }}>
                         <h3 style={{
                             fontSize: "22px",
                             fontWeight: 800,
-                            color: "#22c55e",
+                            color: "#39FF14",
                             marginBottom: "20px"
                         }}>{price.toLocaleString()} so'm <span
                             style={{fontSize: "13px", color: "rgba(255,255,255,0.4)", fontWeight: 400}}>/ soat</span>
@@ -535,9 +578,9 @@ export default function VenueDetailPage(props: PageProps) {
                                 <button key={idx} onClick={() => setActiveDate(idx)} style={{
                                     padding: "8px 12px",
                                     borderRadius: "10px",
-                                    border: `1px solid ${activeDate === idx ? "#22c55e" : "rgba(255,255,255,0.08)"}`,
-                                    background: activeDate === idx ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.02)",
-                                    color: activeDate === idx ? "#22c55e" : "#fff",
+                                    border: `1px solid ${activeDate === idx ? "#39FF14" : "rgba(255,255,255,0.08)"}`,
+                                    background: activeDate === idx ? "rgba(57,255,20,0.15)" : "rgba(255,255,255,0.02)",
+                                    color: activeDate === idx ? "#39FF14" : "#fff",
                                     cursor: "pointer",
                                     fontSize: "12px",
                                     whiteSpace: "nowrap"
@@ -560,7 +603,7 @@ export default function VenueDetailPage(props: PageProps) {
                                 padding: "8px",
                                 borderRadius: "8px",
                                 border: "none",
-                                background: !customMode ? "#22c55e" : "transparent",
+                                background: !customMode ? "#39FF14" : "transparent",
                                 color: "#fff",
                                 fontSize: "12px",
                                 fontWeight: 700,
@@ -572,7 +615,7 @@ export default function VenueDetailPage(props: PageProps) {
                                 padding: "8px",
                                 borderRadius: "8px",
                                 border: "none",
-                                background: customMode ? "#22c55e" : "transparent",
+                                background: customMode ? "#39FF14" : "transparent",
                                 color: "#fff",
                                 fontSize: "12px",
                                 fontWeight: 700,
@@ -605,9 +648,9 @@ export default function VenueDetailPage(props: PageProps) {
                                                     style={{
                                                         padding: "10px",
                                                         borderRadius: "8px",
-                                                        border: `1px solid ${selected ? "#22c55e" : "rgba(255,255,255,0.06)"}`,
-                                                        background: booked ? "rgba(255,0,0,0.05)" : selected ? "rgba(34,197,94,0.2)" : "rgba(255,255,255,0.02)",
-                                                        color: booked ? "rgba(255,255,255,0.15)" : selected ? "#22c55e" : "#fff",
+                                                        border: `1px solid ${selected ? "#39FF14" : "rgba(255,255,255,0.06)"}`,
+                                                        background: booked ? "rgba(255,0,0,0.05)" : selected ? "rgba(57,255,20,0.2)" : "rgba(255,255,255,0.02)",
+                                                        color: booked ? "rgba(255,255,255,0.15)" : selected ? "#39FF14" : "#fff",
                                                         textDecoration: booked ? "line-through" : "none",
                                                         cursor: booked ? "not-allowed" : "pointer",
                                                         fontSize: "12.5px",
@@ -623,7 +666,7 @@ export default function VenueDetailPage(props: PageProps) {
                                     padding: "14px",
                                     borderRadius: "12px",
                                     border: "none",
-                                    background: "linear-gradient(135deg,#22c55e,#16a34a)",
+                                    background: "linear-gradient(135deg,#39FF14,#00D26A)",
                                     color: "#fff",
                                     fontWeight: 800,
                                     fontSize: "14px",
@@ -674,7 +717,7 @@ export default function VenueDetailPage(props: PageProps) {
                                     padding: "14px",
                                     borderRadius: "12px",
                                     border: "none",
-                                    background: "linear-gradient(135deg,#22c55e,#16a34a)",
+                                    background: "linear-gradient(135deg,#39FF14,#00D26A)",
                                     color: "#fff",
                                     fontWeight: 800,
                                     fontSize: "14px",
@@ -684,7 +727,7 @@ export default function VenueDetailPage(props: PageProps) {
                                 </button>
                             </div>
                         )}
-                    </div>
+                    </motion.div>
 
                 </div>
             </section>
