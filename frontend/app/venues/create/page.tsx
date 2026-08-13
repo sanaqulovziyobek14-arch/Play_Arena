@@ -2,7 +2,10 @@
 
 import React, {useState, useEffect, useRef} from "react";
 import {useRouter} from "next/navigation";
+import {motion} from "framer-motion";
 import Cookies from "js-cookie";
+import Navbar from "@/components/navbar/Navbar";
+import Footer from "@/components/footer/Footer";
 
 interface SportType {
     id: number;
@@ -309,22 +312,28 @@ export default function AddVenuePage() {
     };
 
     return (
-        <div className="min-h-screen w-full bg-[#06080c] text-white py-12 px-4 flex items-center justify-center">
-            <div className="w-full max-w-4xl bg-[#0d1117] border border-[#1f262e] rounded-2xl shadow-2xl p-6 md:p-8">
+        <>
+            <Navbar/>
+            <div className="min-h-screen w-full bg-[#050505] text-white py-12 px-4 flex items-center justify-center"
+                 style={{paddingTop: "96px"}}>
+                <motion.div
+                    initial={{opacity: 0, y: 16}} animate={{opacity: 1, y: 0}} transition={{duration: 0.5}}
+                    className="w-full max-w-4xl bg-[#0E1117] border border-[#20242c] rounded-2xl shadow-2xl p-6 md:p-8"
+                >
 
-                <div className="flex items-center space-x-3 mb-8 border-b border-[#1f262e] pb-4">
-                    <span className="text-3xl">🏟️</span>
-                    <div>
-                        <h2 className="text-2xl font-bold tracking-tight text-white">Yangi sport maydoni qo'shish</h2>
-                        <p className="text-sm text-gray-400 mt-1">PlayArena platformasida o'z biznesingizni boshlang</p>
+                    <div className="flex items-center space-x-3 mb-8 border-b border-[#20242c] pb-4">
+                        <span className="text-3xl">🏟️</span>
+                        <div>
+                            <h2 className="text-2xl font-bold tracking-tight text-white">Yangi sport maydoni qo'shish</h2>
+                            <p className="text-sm text-gray-400 mt-1">PlayArena platformasida o'z biznesingizni boshlang</p>
+                        </div>
                     </div>
-                </div>
 
-                {error && (
-                    <div className="p-4 mb-6 text-sm text-red-400 bg-red-950/50 border border-red-900 rounded-xl">
-                        ⚠️ {error}
-                    </div>
-                )}
+                    {error && (
+                        <div className="p-4 mb-6 text-sm text-red-400 bg-red-950/50 border border-red-900 rounded-xl">
+                            ⚠️ {error}
+                        </div>
+                    )}
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Maydon nomi va Sport turi */}
@@ -335,7 +344,7 @@ export default function AddVenuePage() {
                             <input
                                 type="text"
                                 required
-                                className="w-full bg-[#161b22] border border-[#30363d] rounded-xl p-3 text-white focus:outline-none focus:border-[#22C55E]"
+                                className="w-full bg-[#141821] border border-[#20242c] rounded-xl p-3 text-white focus:outline-none focus:border-[#39FF14]"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                             />
@@ -345,7 +354,7 @@ export default function AddVenuePage() {
                                 turi</label>
                             <select
                                 required
-                                className="w-full bg-[#161b22] border border-[#30363d] rounded-xl p-3 text-white focus:outline-none focus:border-[#22C55E]"
+                                className="w-full bg-[#141821] border border-[#20242c] rounded-xl p-3 text-white focus:outline-none focus:border-[#39FF14]"
                                 value={sport}
                                 onChange={(e) => setSport(e.target.value)}
                             >
@@ -367,7 +376,7 @@ export default function AddVenuePage() {
                             minLength={20}
                             rows={4}
                             placeholder="Maydoningiz haqida qisqacha yozing: qanday sport turlari uchun mos, qanday sharoitlar bor, nima uchun mijozlar aynan sizni tanlashi kerak..."
-                            className="w-full bg-[#161b22] border border-[#30363d] rounded-xl p-3 text-white focus:outline-none focus:border-[#22C55E] resize-none"
+                            className="w-full bg-[#141821] border border-[#20242c] rounded-xl p-3 text-white focus:outline-none focus:border-[#39FF14] resize-none"
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                         />
@@ -375,9 +384,9 @@ export default function AddVenuePage() {
                     </div>
 
                     {/* 📍 SIZ SO'RAGAN AQLLI LOKATSIYA BLOKI */}
-                    <div className="bg-[#11161d] p-5 rounded-2xl border border-[#21262d] space-y-4">
+                    <div className="bg-[#0E1117] p-5 rounded-2xl border border-[#20242c] space-y-4">
                         <div
-                            className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-[#21262d] pb-3">
+                            className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-[#20242c] pb-3">
               <span className="text-sm font-bold text-gray-200 flex items-center gap-2">
                 📍 Stadion joylashuvi (Faqat Toshkent shahri)
               </span>
@@ -385,21 +394,21 @@ export default function AddVenuePage() {
                                 <button
                                     type="button"
                                     onClick={() => setLocationStep("auto")}
-                                    className={`px-3 py-1 text-xs font-semibold rounded-lg transition ${locationStep === "auto" ? "bg-[#22C55E] text-white" : "bg-[#161b22] text-gray-400 hover:text-white"}`}
+                                    className={`px-3 py-1 text-xs font-semibold rounded-lg transition ${locationStep === "auto" ? "bg-[#39FF14] text-white" : "bg-[#141821] text-gray-400 hover:text-white"}`}
                                 >
                                     🤖 Avto-aniqlash
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setLocationStep("manual")}
-                                    className={`px-3 py-1 text-xs font-semibold rounded-lg transition ${locationStep === "manual" ? "bg-[#22C55E] text-white" : "bg-[#161b22] text-gray-400 hover:text-white"}`}
+                                    className={`px-3 py-1 text-xs font-semibold rounded-lg transition ${locationStep === "manual" ? "bg-[#39FF14] text-white" : "bg-[#141821] text-gray-400 hover:text-white"}`}
                                 >
                                     ✍️ Qo'lda kiritish
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setLocationStep("map")}
-                                    className={`px-3 py-1 text-xs font-semibold rounded-lg transition ${locationStep === "map" ? "bg-[#22C55E] text-white" : "bg-[#161b22] text-gray-400 hover:text-white"}`}
+                                    className={`px-3 py-1 text-xs font-semibold rounded-lg transition ${locationStep === "map" ? "bg-[#39FF14] text-white" : "bg-[#141821] text-gray-400 hover:text-white"}`}
                                 >
                                     🗺️ Xaritadan tanlash
                                 </button>
@@ -408,14 +417,14 @@ export default function AddVenuePage() {
 
                         {/* Rejim 1: Avtomatik aniqlash holati */}
                         {locationStep === "auto" && (
-                            <div className="p-4 bg-[#161b22] rounded-xl border border-[#30363d] space-y-3">
+                            <div className="p-4 bg-[#141821] rounded-xl border border-[#20242c] space-y-3">
                                 <p className="text-sm text-gray-300">
                                     🤔 <span
-                                    className="font-semibold text-[#22C55E]">Stadion rostdan ham shu yerdami?</span>
+                                    className="font-semibold text-[#39FF14]">Stadion rostdan ham shu yerdami?</span>
                                 </p>
                                 {address ? (
                                     <div
-                                        className="bg-[#0d1117] p-3 rounded-lg border border-[#21262d] text-sm text-gray-200 font-medium">
+                                        className="bg-[#0E1117] p-3 rounded-lg border border-[#20242c] text-sm text-gray-200 font-medium">
                                         {address}
                                     </div>
                                 ) : (
@@ -438,14 +447,14 @@ export default function AddVenuePage() {
                                         type="text"
                                         required={locationStep === "manual"}
                                         placeholder="Masalan: Chinobod ko'chasi, 51-uy (yoki mo'ljal)"
-                                        className="flex-1 bg-[#161b22] border border-[#30363d] rounded-xl p-3 text-sm text-white focus:outline-none focus:border-[#22C55E]"
+                                        className="flex-1 bg-[#141821] border border-[#20242c] rounded-xl p-3 text-sm text-white focus:outline-none focus:border-[#39FF14]"
                                         value={address}
                                         onChange={(e) => setAddress(e.target.value)}
                                     />
                                     <button
                                         type="button"
                                         onClick={handleGeocodeAddress}
-                                        className="bg-[#21262d] hover:bg-[#30363d] text-white px-4 rounded-xl text-xs font-semibold border border-[#30363d] transition"
+                                        className="bg-[#20242c] hover:bg-[#20242c] text-white px-4 rounded-xl text-xs font-semibold border border-[#20242c] transition"
                                     >
                                         🔍 Qidirish
                                     </button>
@@ -459,11 +468,11 @@ export default function AddVenuePage() {
                                 <p className="text-xs text-gray-400">Xarita ustiga bosing yoki yashil markerni stadion
                                     ustiga suring:</p>
                                 <div ref={mapRef}
-                                     className="w-full h-64 rounded-xl overflow-hidden border border-[#30363d]"/>
+                                     className="w-full h-64 rounded-xl overflow-hidden border border-[#20242c]"/>
                                 {address && (
                                     <div
-                                        className="text-xs text-gray-300 bg-[#161b22] p-2.5 rounded-lg border border-[#21262d]">
-                                        <span className="text-[#22C55E] font-bold">Tanlangan manzil:</span> {address}
+                                        className="text-xs text-gray-300 bg-[#141821] p-2.5 rounded-lg border border-[#20242c]">
+                                        <span className="text-[#39FF14] font-bold">Tanlangan manzil:</span> {address}
                                     </div>
                                 )}
                             </div>
@@ -492,7 +501,7 @@ export default function AddVenuePage() {
                             <input
                                 type="number"
                                 required
-                                className="w-full bg-[#161b22] border border-[#30363d] rounded-xl p-3 text-white focus:outline-none focus:border-[#22C55E]"
+                                className="w-full bg-[#141821] border border-[#20242c] rounded-xl p-3 text-white focus:outline-none focus:border-[#39FF14]"
                                 value={price}
                                 onChange={(e) => setPrice(e.target.value)}
                             />
@@ -503,7 +512,7 @@ export default function AddVenuePage() {
                             <input
                                 type="number"
                                 required
-                                className="w-full bg-[#161b22] border border-[#30363d] rounded-xl p-3 text-white focus:outline-none focus:border-[#22C55E]"
+                                className="w-full bg-[#141821] border border-[#20242c] rounded-xl p-3 text-white focus:outline-none focus:border-[#39FF14]"
                                 value={width}
                                 onChange={(e) => setWidth(e.target.value)}
                             />
@@ -514,7 +523,7 @@ export default function AddVenuePage() {
                             <input
                                 type="number"
                                 required
-                                className="w-full bg-[#161b22] border border-[#30363d] rounded-xl p-3 text-white focus:outline-none focus:border-[#22C55E]"
+                                className="w-full bg-[#141821] border border-[#20242c] rounded-xl p-3 text-white focus:outline-none focus:border-[#39FF14]"
                                 value={length}
                                 onChange={(e) => setLength(e.target.value)}
                             />
@@ -528,7 +537,7 @@ export default function AddVenuePage() {
                                 vaqti</label>
                             <input
                                 type="time"
-                                className="w-full bg-[#161b22] border border-[#30363d] rounded-xl p-3 text-white focus:outline-none focus:border-[#22C55E]"
+                                className="w-full bg-[#141821] border border-[#20242c] rounded-xl p-3 text-white focus:outline-none focus:border-[#39FF14]"
                                 value={startTime}
                                 onChange={(e) => setStartTime(e.target.value)}
                             />
@@ -538,7 +547,7 @@ export default function AddVenuePage() {
                                 vaqti</label>
                             <input
                                 type="time"
-                                className="w-full bg-[#161b22] border border-[#30363d] rounded-xl p-3 text-white focus:outline-none focus:border-[#22C55E]"
+                                className="w-full bg-[#141821] border border-[#20242c] rounded-xl p-3 text-white focus:outline-none focus:border-[#39FF14]"
                                 value={endTime}
                                 onChange={(e) => setEndTime(e.target.value)}
                             />
@@ -550,17 +559,17 @@ export default function AddVenuePage() {
                         <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Stadion
                             rasmlari</label>
                         <div
-                            className="relative border-2 border-dashed border-[#30363d] hover:border-[#22C55E] rounded-xl p-6 text-center cursor-pointer bg-[#161b22]">
+                            className="relative border-2 border-dashed border-[#20242c] hover:border-[#39FF14] rounded-xl p-6 text-center cursor-pointer bg-[#141821]">
                             <input type="file" multiple accept="image/*" onChange={handleImageChange}
                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"/>
                             <span className="text-sm text-gray-400">📸 Rasmlarni tanlang</span>
                         </div>
                         {previews.length > 0 && (
                             <div
-                                className="grid grid-cols-3 sm:grid-cols-5 gap-3 mt-4 bg-[#11161d] p-3 rounded-xl border border-[#21262d]">
+                                className="grid grid-cols-3 sm:grid-cols-5 gap-3 mt-4 bg-[#0E1117] p-3 rounded-xl border border-[#20242c]">
                                 {previews.map((src, index) => (
                                     <div key={index}
-                                         className="relative group w-full h-20 border border-[#30363d] rounded-lg overflow-hidden">
+                                         className="relative group w-full h-20 border border-[#20242c] rounded-lg overflow-hidden">
                                         <img src={src} alt="preview" className="w-full h-full object-cover"/>
                                         <button type="button" onClick={() => removeImage(index)}
                                                 className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">✕
@@ -572,14 +581,14 @@ export default function AddVenuePage() {
                     </div>
 
                     {/* Qulayliklar */}
-                    <div className="flex space-x-6 bg-[#161b22] p-4 rounded-xl border border-[#30363d]">
+                    <div className="flex space-x-6 bg-[#141821] p-4 rounded-xl border border-[#20242c]">
                         <label className="flex items-center space-x-3 cursor-pointer text-sm">
-                            <input type="checkbox" className="w-4 h-4 rounded text-[#22C55E]" checked={hasWifi}
+                            <input type="checkbox" className="w-4 h-4 rounded text-[#39FF14]" checked={hasWifi}
                                    onChange={(e) => setHasWifi(e.target.checked)}/>
                             <span>Wi-Fi mavjud</span>
                         </label>
                         <label className="flex items-center space-x-3 cursor-pointer text-sm">
-                            <input type="checkbox" className="w-4 h-4 rounded text-[#22C55E]" checked={hasParking}
+                            <input type="checkbox" className="w-4 h-4 rounded text-[#39FF14]" checked={hasParking}
                                    onChange={(e) => setHasParking(e.target.checked)}/>
                             <span>Avtoturargoh bor</span>
                         </label>
@@ -589,22 +598,23 @@ export default function AddVenuePage() {
                     <button
                         type="submit"
                         disabled={loading || outOfTashkent}
-                        className="w-full bg-[#22C55E] hover:bg-[#1ca850] disabled:bg-gray-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition"
+                        className="w-full bg-[#39FF14] hover:bg-[#00D26A] disabled:bg-gray-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition"
                     >
                         {loading ? "Yuborilmoqda..." : "Maydon qo'shish uchun ariza topshirish"}
                     </button>
                 </form>
+                </motion.div>
             </div>
 
             {/* Modallar (Login va Muvaffaqiyat) xuddi avvalgidek qoladi */}
             {showLoginModal && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                     <div
-                        className="bg-[#0d1117] border border-[#21262d] p-6 rounded-2xl max-w-sm w-full text-center shadow-2xl">
+                        className="bg-[#0E1117] border border-[#20242c] p-6 rounded-2xl max-w-sm w-full text-center shadow-2xl">
                         <div className="text-5xl mb-4">🔒</div>
                         <h3 className="text-xl font-bold text-white mb-2">Avval tizimga kiring</h3>
                         <button onClick={() => router.push("/login?callback=/venues/create")}
-                                className="w-full bg-[#22C55E] py-2.5 rounded-xl text-white font-bold">Tizimga kirish
+                                className="w-full bg-[#39FF14] py-2.5 rounded-xl text-white font-bold">Tizimga kirish
                         </button>
                     </div>
                 </div>
@@ -613,7 +623,7 @@ export default function AddVenuePage() {
             {showSuccessModal && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                     <div
-                        className="bg-[#0d1117] border border-[#21262d] p-6 rounded-2xl max-w-md w-full text-center shadow-2xl">
+                        className="bg-[#0E1117] border border-[#20242c] p-6 rounded-2xl max-w-md w-full text-center shadow-2xl">
                         <div className="text-5xl mb-4">📩</div>
                         <h3 className="text-xl font-bold text-white mb-2">Arizangiz qabul qilindi!</h3>
                         <p className="text-sm text-gray-400 mb-5">
@@ -621,12 +631,14 @@ export default function AddVenuePage() {
                             Administratsiya tasdiqlagach, u saytda barcha foydalanuvchilarga ko'rinadigan bo'ladi.
                         </p>
                         <button onClick={() => router.push("/")}
-                                className="w-full bg-[#22C55E] py-2.5 rounded-xl text-white font-bold">Bosh sahifaga
+                                className="w-full bg-[#39FF14] py-2.5 rounded-xl text-white font-bold">Bosh sahifaga
                             qaytish
                         </button>
                     </div>
                 </div>
             )}
-        </div>
+
+            <Footer/>
+        </>
     );
 }

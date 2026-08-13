@@ -7,13 +7,15 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 
 def home(request):
-    return JsonResponse({
-        "project": "Play Arena API",
-        "status": "working",
-        "version": "v1",
-        "docs": "/swagger/",
-        "admin": "/admin/",
-    })
+    return JsonResponse(
+        {
+            "project": "Play Arena API",
+            "status": "working",
+            "version": "v1",
+            "docs": "/swagger/",
+            "admin": "/admin/",
+        }
+    )
 
 
 urlpatterns = [
@@ -22,4 +24,5 @@ urlpatterns = [
     path("api/v1/", include("apps.urls")),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("swagger/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger"),
+    path("api/auth/", include("authentication.urls")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

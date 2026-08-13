@@ -3,7 +3,7 @@ const LINKS = {
   "Platforma": [
     { label: "Bosh sahifa",    href: "/" },
     { label: "Maydonlar",      href: "/venues" },
-    { label: "Sport turlari",  href: "/#sport-turlari" },
+    { label: "Sport turlari",  href: "/sports" },
     { label: "Bronlarim",      href: "/bookings" },
   ],
   "Kompaniya": [
