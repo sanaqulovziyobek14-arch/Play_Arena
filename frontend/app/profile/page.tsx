@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Navbar from "@/components/navbar/Navbar";
@@ -11,7 +12,7 @@ import {
 } from "@/services/api";
 
 const ROLE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  user:  { label: "Foydalanuvchi", color: "#22c55e", bg: "rgba(34,197,94,0.08)"  },
+  user:  { label: "Foydalanuvchi", color: "#39FF14", bg: "rgba(57,255,20,0.08)"  },
   owner: { label: "Maydon egasi",  color: "#fbbf24", bg: "rgba(251,191,36,0.08)" },
   admin: { label: "Administrator", color: "#a78bfa", bg: "rgba(167,139,250,0.08)" },
 };
@@ -35,7 +36,7 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab]     = useState<"info"|"settings">("info");
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-  const showToast = (msg: string, color = "#22c55e") => {
+  const showToast = (msg: string, color = "#39FF14") => {
     setToast(msg);
     setTimeout(() => setToast(""), 3000);
   };
@@ -65,12 +66,12 @@ export default function ProfilePage() {
   };
 
   if (loading) return (
-    <main style={{ background: "#000", minHeight: "100vh" }}>
+    <main style={{ background: "#050505", minHeight: "100vh" }}>
       <Navbar />
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "80vh" }}>
         <div style={{
           width: "40px", height: "40px", borderRadius: "50%",
-          border: "2px solid rgba(34,197,94,0.2)", borderTopColor: "#22c55e",
+          border: "2px solid rgba(57,255,20,0.2)", borderTopColor: "#39FF14",
           animation: "spin .8s linear infinite",
         }} />
       </div>
@@ -85,13 +86,15 @@ export default function ProfilePage() {
   const role     = ROLE_CONFIG[user.role] || ROLE_CONFIG.user;
 
   return (
-    <main style={{ background: "#000", minHeight: "100vh", color: "#fff" }}>
+    <main style={{ background: "#050505", minHeight: "100vh", color: "#fff" }}>
       <Navbar />
 
       <div style={{ maxWidth: "900px", margin: "64px auto 0", padding: "40px 32px 80px" }}>
 
         {/* ── PROFILE HEADER CARD ── */}
-        <div style={{
+        <motion.div
+          initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
+          style={{
           background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)",
           borderRadius: "20px", padding: "32px", marginBottom: "20px",
           position: "relative", overflow: "hidden",
@@ -100,7 +103,7 @@ export default function ProfilePage() {
           <div style={{
             position: "absolute", top: "-60px", right: "-60px",
             width: "200px", height: "200px", borderRadius: "50%",
-            background: "radial-gradient(circle,rgba(34,197,94,0.08) 0%,transparent 70%)",
+            background: "radial-gradient(circle,rgba(57,255,20,0.08) 0%,transparent 70%)",
             pointerEvents: "none",
           }} />
 
@@ -109,11 +112,11 @@ export default function ProfilePage() {
             <div style={{ position: "relative", flexShrink: 0 }}>
               <div style={{
                 width: "88px", height: "88px", borderRadius: "50%",
-                background: user.image ? "transparent" : "linear-gradient(135deg,#22c55e,#16a34a)",
-                border: "3px solid rgba(34,197,94,0.3)",
+                background: user.image ? "transparent" : "linear-gradient(135deg,#39FF14,#00D26A)",
+                border: "3px solid rgba(57,255,20,0.3)",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: "36px", fontWeight: 900, color: "#fff",
-                boxShadow: "0 0 30px rgba(34,197,94,0.2)",
+                boxShadow: "0 0 30px rgba(57,255,20,0.2)",
                 overflow: "hidden",
               }}>
                 {user.image
@@ -124,7 +127,7 @@ export default function ProfilePage() {
               <div style={{
                 position: "absolute", bottom: "4px", right: "4px",
                 width: "14px", height: "14px", borderRadius: "50%",
-                background: "#22c55e", border: "2px solid #000",
+                background: "#39FF14", border: "2px solid #050505",
               }} />
             </div>
 
@@ -157,14 +160,14 @@ export default function ProfilePage() {
                     borderRight: i < 2 ? "1px solid rgba(255,255,255,0.06)" : "none",
                   }}>
                     <div style={{ fontSize: "11px", marginBottom: "4px" }}>{icon}</div>
-                    <div style={{ fontSize: "20px", fontWeight: 900, color: "#22c55e", lineHeight: 1 }}>{val}</div>
+                    <div style={{ fontSize: "20px", fontWeight: 900, color: "#39FF14", lineHeight: 1 }}>{val}</div>
                     <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)", marginTop: "4px" }}>{label}</div>
                   </div>
                 ))}
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* ── TABS ── */}
         <div style={{
@@ -176,9 +179,9 @@ export default function ProfilePage() {
             <button key={tab} onClick={() => setActiveTab(tab)} style={{
               flex: 1, padding: "10px", borderRadius: "9px", border: "none", cursor: "pointer",
               fontSize: "13px", fontWeight: 700, transition: "all .2s",
-              background: activeTab === tab ? "linear-gradient(135deg,#22c55e,#16a34a)" : "transparent",
+              background: activeTab === tab ? "linear-gradient(135deg,#39FF14,#00D26A)" : "transparent",
               color: activeTab === tab ? "#fff" : "rgba(255,255,255,0.4)",
-              boxShadow: activeTab === tab ? "0 2px 12px rgba(34,197,94,0.25)" : "none",
+              boxShadow: activeTab === tab ? "0 2px 12px rgba(57,255,20,0.25)" : "none",
             }}>{label}</button>
           ))}
         </div>
@@ -310,7 +313,7 @@ export default function ProfilePage() {
         <div style={{
           position: "fixed", bottom: "24px", right: "24px", zIndex: 50,
           display: "flex", alignItems: "center", gap: "10px",
-          background: "#111", border: "1px solid rgba(255,255,255,0.1)",
+          background: "#0E1117", border: "1px solid rgba(255,255,255,0.1)",
           borderRadius: "12px", padding: "14px 18px", fontSize: "13px", color: "#fff",
           boxShadow: "0 10px 40px rgba(0,0,0,0.7)",
           animation: "slideInRight .3s ease",

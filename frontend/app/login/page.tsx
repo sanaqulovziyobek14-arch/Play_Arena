@@ -2,6 +2,7 @@
 
 import {Suspense, useEffect, useState} from "react";
 import Link from "next/link";
+import {motion} from "framer-motion";
 import {useRouter} from "next/navigation";
 import {authAPI, setTokens, statsAPI} from "@/services/api";
 
@@ -50,8 +51,8 @@ function LoginContent() {
 
         if (score <= 1) return {score: 1, label: "Zaif", color: "#ef4444"};
         if (score <= 2) return {score: 2, label: "O'rtacha", color: "#fbbf24"};
-        if (score <= 3) return {score: 3, label: "Yaxshi", color: "#22c55e"};
-        return {score: 4, label: "Kuchli", color: "#16a34a"};
+        if (score <= 3) return {score: 3, label: "Yaxshi", color: "#39FF14"};
+        return {score: 4, label: "Kuchli", color: "#00D26A"};
     };
     const strength = passwordStrength();
 
@@ -161,14 +162,14 @@ function LoginContent() {
         width: "100%", padding: "11px 14px", borderRadius: "10px",
         background: "rgba(255,255,255,0.04)",
         border: hasError ? "1px solid rgba(239,68,68,0.5)"
-            : isValid ? "1px solid rgba(34,197,94,0.5)"
+            : isValid ? "1px solid rgba(57,255,20,0.5)"
                 : "1px solid rgba(255,255,255,0.08)",
         color: "#fff", fontSize: "13px", outline: "none", transition: "border .15s",
     });
 
     return (
         <main style={{
-            minHeight: "100vh", background: "#000",
+            minHeight: "100vh", background: "#050505",
             display: "flex", alignItems: "center", justifyContent: "center",
             padding: "24px 16px", position: "relative", overflow: "hidden",
         }}>
@@ -176,12 +177,12 @@ function LoginContent() {
                 position: "absolute", top: "20%", left: "50%",
                 transform: "translate(-50%,-50%)",
                 width: "600px", height: "600px", borderRadius: "50%",
-                background: "radial-gradient(circle,rgba(34,197,94,0.07) 0%,transparent 70%)",
+                background: "radial-gradient(circle,rgba(57,255,20,0.07) 0%,transparent 70%)",
                 pointerEvents: "none",
             }}/>
             <div style={{
                 position: "absolute", inset: 0,
-                backgroundImage: "linear-gradient(rgba(34,197,94,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(34,197,94,0.03) 1px,transparent 1px)",
+                backgroundImage: "linear-gradient(rgba(57,255,20,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(57,255,20,0.03) 1px,transparent 1px)",
                 backgroundSize: "48px 48px", pointerEvents: "none",
             }}/>
 
@@ -194,9 +195,9 @@ function LoginContent() {
                 }}>
                     <div style={{
                         width: "38px", height: "38px", borderRadius: "11px",
-                        background: "linear-gradient(135deg,#22c55e,#16a34a)",
+                        background: "linear-gradient(135deg,#39FF14,#00D26A)",
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        boxShadow: "0 0 24px rgba(34,197,94,0.35)",
+                        boxShadow: "0 0 24px rgba(57,255,20,0.35)",
                     }}>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
                             <path
@@ -204,12 +205,14 @@ function LoginContent() {
                         </svg>
                     </div>
                     <span style={{fontSize: "20px", fontWeight: 800, color: "#fff", letterSpacing: "-0.02em"}}>
-            Play<span style={{color: "#22c55e"}}>Arena</span>
+            Play<span style={{color: "#39FF14"}}>Arena</span>
           </span>
                 </Link>
 
                 {/* Card */}
-                <div style={{
+                <motion.div
+                    initial={{opacity: 0, y: 20}} animate={{opacity: 1, y: 0}} transition={{duration: 0.5}}
+                    style={{
                     background: "rgba(255,255,255,0.03)",
                     border: "1px solid rgba(255,255,255,0.08)",
                     borderRadius: "20px", padding: "32px",
@@ -231,9 +234,9 @@ function LoginContent() {
                                         flex: 1, padding: "9px 12px", borderRadius: "9px",
                                         border: "none", cursor: "pointer", fontSize: "13px", fontWeight: 700,
                                         transition: "all .2s",
-                                        background: (i === 0) === isLogin ? "linear-gradient(135deg,#22c55e,#16a34a)" : "transparent",
+                                        background: (i === 0) === isLogin ? "linear-gradient(135deg,#39FF14,#00D26A)" : "transparent",
                                         color: (i === 0) === isLogin ? "#fff" : "rgba(255,255,255,0.4)",
-                                        boxShadow: (i === 0) === isLogin ? "0 2px 12px rgba(34,197,94,0.25)" : "none",
+                                        boxShadow: (i === 0) === isLogin ? "0 2px 12px rgba(57,255,20,0.25)" : "none",
                                     }}>
                                 {label}
                             </button>
@@ -451,7 +454,7 @@ function LoginContent() {
                                     Parol *
                                 </label>
                                 {isLogin && (
-                                    <span style={{fontSize: "12px", color: "#22c55e", cursor: "pointer"}}>
+                                    <span style={{fontSize: "12px", color: "#39FF14", cursor: "pointer"}}>
                     Unutdingizmi?
                   </span>
                                 )}
@@ -598,7 +601,7 @@ function LoginContent() {
                                     <p style={{fontSize: "11px", color: "#ef4444", marginTop: "4px"}}>Parollar mos
                                         kelmadi</p>
                                 ) : password2.length > 0 && passwordsMatch ? (
-                                    <p style={{fontSize: "11px", color: "#22c55e", marginTop: "4px"}}>✓ Parollar mos
+                                    <p style={{fontSize: "11px", color: "#39FF14", marginTop: "4px"}}>✓ Parollar mos
                                         keldi</p>
                                 ) : null}
                             </div>
@@ -627,12 +630,12 @@ function LoginContent() {
                             borderRadius: "12px",
                             border: "none",
                             cursor: loading ? "not-allowed" : "pointer",
-                            background: loading ? "rgba(34,197,94,0.4)" : "linear-gradient(135deg,#22c55e,#16a34a)",
+                            background: loading ? "rgba(57,255,20,0.4)" : "linear-gradient(135deg,#39FF14,#00D26A)",
                             color: "#fff",
                             fontSize: "14px",
                             fontWeight: 700,
                             letterSpacing: ".01em",
-                            boxShadow: loading ? "none" : "0 4px 20px rgba(34,197,94,0.3)",
+                            boxShadow: loading ? "none" : "0 4px 20px rgba(57,255,20,0.3)",
                             transition: "all .2s",
                             display: "flex",
                             alignItems: "center",
@@ -668,12 +671,12 @@ function LoginContent() {
                             reset();
                         }} style={{
                             background: "none", border: "none", cursor: "pointer",
-                            color: "#22c55e", fontSize: "13px", fontWeight: 700,
+                            color: "#39FF14", fontSize: "13px", fontWeight: 700,
                         }}>
                             {isLogin ? "Ro'yxatdan o'ting" : "Kiring"}
                         </button>
                     </p>
-                </div>
+                </motion.div>
 
                 <p style={{textAlign: "center", marginTop: "20px"}}>
                     <Link href="/" style={{
@@ -688,7 +691,7 @@ function LoginContent() {
             <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         input::placeholder { color: rgba(255,255,255,0.2); }
-        input:-webkit-autofill { -webkit-box-shadow: 0 0 0 100px #000 inset !important; -webkit-text-fill-color: #fff !important; }
+        input:-webkit-autofill { -webkit-box-shadow: 0 0 0 100px #050505 inset !important; -webkit-text-fill-color: #fff !important; }
       `}</style>
         </main>
     );
@@ -698,7 +701,7 @@ export default function LoginPage() {
     return (
         <Suspense fallback={
             <div style={{
-                background: "#000",
+                background: "#050505",
                 minHeight: "100vh",
                 display: "flex",
                 alignItems: "center",
@@ -706,7 +709,7 @@ export default function LoginPage() {
             }}>
                 <div style={{
                     width: "40px", height: "40px", borderRadius: "50%",
-                    border: "2px solid rgba(34,197,94,0.2)", borderTopColor: "#22c55e",
+                    border: "2px solid rgba(57,255,20,0.2)", borderTopColor: "#39FF14",
                     animation: "spin 0.8s linear infinite",
                 }}/>
             </div>
