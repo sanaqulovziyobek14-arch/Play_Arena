@@ -482,6 +482,70 @@ export default function VenueDetailPage(props: PageProps) {
                                 ) : (
                                     <SportIcon sportName={currentSportName} className="w-24 h-24 text-white"/>
                                 )}
+
+                                {/* Bir nechta rasm bo'lsa — oldinga/orqaga strelkalar va hisoblagich (pagination) */}
+                                {venue.images && venue.images.length > 1 && (
+                                    <>
+                                        <button
+                                            onClick={() => setActiveImage((prev) => (prev - 1 + venue.images.length) % venue.images.length)}
+                                            aria-label="Oldingi rasm"
+                                            style={{
+                                                position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)",
+                                                width: "36px", height: "36px", borderRadius: "50%",
+                                                background: "rgba(0,0,0,0.55)", border: "1px solid rgba(255,255,255,0.15)",
+                                                color: "#fff", fontSize: "16px", fontWeight: 700, cursor: "pointer",
+                                                display: "flex", alignItems: "center", justifyContent: "center",
+                                                backdropFilter: "blur(4px)", transition: "background .15s",
+                                            }}
+                                        >
+                                            ‹
+                                        </button>
+                                        <button
+                                            onClick={() => setActiveImage((prev) => (prev + 1) % venue.images.length)}
+                                            aria-label="Keyingi rasm"
+                                            style={{
+                                                position: "absolute", right: "14px", top: "50%", transform: "translateY(-50%)",
+                                                width: "36px", height: "36px", borderRadius: "50%",
+                                                background: "rgba(0,0,0,0.55)", border: "1px solid rgba(255,255,255,0.15)",
+                                                color: "#fff", fontSize: "16px", fontWeight: 700, cursor: "pointer",
+                                                display: "flex", alignItems: "center", justifyContent: "center",
+                                                backdropFilter: "blur(4px)", transition: "background .15s",
+                                            }}
+                                        >
+                                            ›
+                                        </button>
+
+                                        {/* "2 / 4" hisoblagich */}
+                                        <div style={{
+                                            position: "absolute", bottom: "12px", right: "14px",
+                                            background: "rgba(0,0,0,0.6)", border: "1px solid rgba(255,255,255,0.15)",
+                                            color: "#fff", fontSize: "12px", fontWeight: 700,
+                                            padding: "4px 10px", borderRadius: "999px", backdropFilter: "blur(4px)",
+                                        }}>
+                                            {activeImage + 1} / {venue.images.length}
+                                        </div>
+
+                                        {/* Nuqtali indikator */}
+                                        <div style={{
+                                            position: "absolute", bottom: "12px", left: "50%", transform: "translateX(-50%)",
+                                            display: "flex", gap: "6px",
+                                        }}>
+                                            {venue.images.map((_, dotIdx) => (
+                                                <button
+                                                    key={dotIdx}
+                                                    onClick={() => setActiveImage(dotIdx)}
+                                                    aria-label={`${dotIdx + 1}-rasm`}
+                                                    style={{
+                                                        width: dotIdx === activeImage ? "18px" : "6px", height: "6px",
+                                                        borderRadius: "999px", padding: 0, border: "none",
+                                                        background: dotIdx === activeImage ? "#39FF14" : "rgba(255,255,255,0.4)",
+                                                        cursor: "pointer", transition: "all .2s ease",
+                                                    }}
+                                                />
+                                            ))}
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         </div>
 

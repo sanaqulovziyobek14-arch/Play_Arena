@@ -11,8 +11,18 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.generics import CreateAPIView
-from rest_framework.mixins import CreateModelMixin, RetrieveModelMixin, UpdateModelMixin, ListModelMixin
-from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly, BasePermission
+from rest_framework.mixins import (
+    CreateModelMixin,
+    RetrieveModelMixin,
+    UpdateModelMixin,
+    ListModelMixin,
+)
+from rest_framework.permissions import (
+    AllowAny,
+    IsAuthenticated,
+    IsAuthenticatedOrReadOnly,
+    BasePermission,
+)
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet, GenericViewSet
@@ -20,9 +30,16 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 
 from apps.models import Booking, Favorite, Payment, Review, SportType, Venue, VenueImage
 from apps.serializers import (
-    BookingModelSerializer, FavoriteModelSerializer, PaymentModelSerializer,
-    ReviewModelSerializer, SportTypeModelSerializer, CustomTokenObtainPairSerializer,
-    UserModelSerializer, VenueModelSerializer, VenueImageModelSerializer, VenueCreateSerializer,
+    BookingModelSerializer,
+    FavoriteModelSerializer,
+    PaymentModelSerializer,
+    ReviewModelSerializer,
+    SportTypeModelSerializer,
+    CustomTokenObtainPairSerializer,
+    UserModelSerializer,
+    VenueModelSerializer,
+    VenueImageModelSerializer,
+    VenueCreateSerializer,
 )
 from .filters import BookingFilter, ReviewFilter
 
@@ -32,6 +49,7 @@ User = get_user_model()
 # ══════════════════════════════════════════════════════
 #  PERMISSIONS
 # ══════════════════════════════════════════════════════
+
 
 class IsOwnerOrAdmin(BasePermission):
     def has_object_permission(self, request, view, obj):
@@ -51,9 +69,11 @@ class IsVenueOwnerOrAdmin(BasePermission):
 #  AUTH
 # ══════════════════════════════════════════════════════
 
-@extend_schema(tags=['Auth'])
+
+@extend_schema(tags=["Auth"])
 class CustomTokenObtainPairView(TokenObtainPairView):
     """Login — JWT token olish"""
+
     serializer_class = CustomTokenObtainPairSerializer
 
 
@@ -61,17 +81,20 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 #  USER
 # ══════════════════════════════════════════════════════
 
-@extend_schema(tags=['User'])
+
+@extend_schema(tags=["User"])
 class UserCreateApiView(CreateAPIView):
     """Ro'yxatdan o'tish"""
-    queryset = User.objects.all().order_by('id')
+
+    queryset = User.objects.all().order_by("id")
     serializer_class = UserModelSerializer
     permission_classes = [AllowAny]
 
 
-@extend_schema(tags=['User'])
+@extend_schema(tags=["User"])
 class UserViewSet(ModelViewSet):
     """Profil boshqaruvi"""
+
     serializer_class = UserModelSerializer
     permission_classes = [IsAuthenticated]
 
@@ -80,7 +103,7 @@ class UserViewSet(ModelViewSet):
         return User.objects.all() if user.is_admin else User.objects.filter(pk=user.pk)
 
     def get_permissions(self):
-        if self.action in ['update', 'partial_update', 'destroy']:
+        if self.action in ["update", "partial_update", "destroy"]:
             return [IsAuthenticated(), IsOwnerOrAdmin()]
         return [IsAuthenticated()]
 
@@ -95,7 +118,9 @@ class UserViewSet(ModelViewSet):
     @extend_schema(exclude=True)
     def destroy(self, request, *args, **kwargs):
         if not request.user.is_admin:
-            raise PermissionDenied("Foydalanuvchini o'chirish uchun admin bo'lishingiz kerak.")
+            raise PermissionDenied(
+                "Foydalanuvchini o'chirish uchun admin bo'lishingiz kerak."
+            )
         return super().destroy(request, *args, **kwargs)
 
     @extend_schema(
@@ -117,15 +142,17 @@ class UserViewSet(ModelViewSet):
 #  SPORT TYPE
 # ══════════════════════════════════════════════════════
 
-@extend_schema(tags=['Sport'])
+
+@extend_schema(tags=["Sport"])
 class SportTypeViewSet(ModelViewSet):
     """Sport turlari"""
-    queryset = SportType.objects.all().order_by('id')
+
+    queryset = SportType.objects.all().order_by("id")
     serializer_class = SportTypeModelSerializer
     permission_classes = [AllowAny]
 
     def get_permissions(self):
-        if self.action in ['list', 'retrieve']:
+        if self.action in ["list", "retrieve"]:
             return [AllowAny()]
         return [IsAuthenticated()]
 
@@ -167,9 +194,11 @@ class SportTypeViewSet(ModelViewSet):
 #  VENUE
 # ══════════════════════════════════════════════════════
 
-@extend_schema(tags=['Venue'])
+
+@extend_schema(tags=["Venue"])
 class VenueViewSet(ModelViewSet):
     """Sport maydonlari"""
+
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ["sport", "has_wifi", "has_parking"]
     search_fields = ["name", "address", "description"]
@@ -184,20 +213,23 @@ class VenueViewSet(ModelViewSet):
         """
         user = self.request.user
 
-        base_queryset = Venue.objects.select_related("owner", "sport") \
-            .prefetch_related("images") \
+        base_queryset = (
+            Venue.objects.select_related("owner", "sport")
+            .prefetch_related("images")
             .annotate(
-            rating=Avg("reviews__rating"),
-            review_count=Count("reviews"),
+                rating=Avg("reviews__rating"),
+                review_count=Count("reviews"),
+            )
+            .order_by("-created_at")
         )
 
-        if self.action in ['list', 'retrieve']:
+        if self.action in ["list", "retrieve"]:
             # Agar foydalanuvchi tizimga kirmagan bo'lsa (Anonim), faqat tasdiqlanganlarni ko'radi
             if not user.is_authenticated:
                 return base_queryset.filter(status=Venue.Role.APPROVED)
 
             # Agar admin bo'lsa, barcha maydonlarni (kutilmoqda, tasdiqlandi, bekor qilingan) ko'ra oladi
-            if getattr(user, 'role', None) == 'admin' or user.is_staff:
+            if getattr(user, "role", None) == "admin" or user.is_staff:
                 return base_queryset
 
             # Agar oddiy owner bo'lsa, o'ziga tegishli barcha maydonlarni + boshqalarning faqat 'tasdiqlandi' bo'lganlarini ko'radi
@@ -210,21 +242,24 @@ class VenueViewSet(ModelViewSet):
         Mukammallik: Maydon yaratishda rasmlarni qabul qiladigan serializer,
         ko'rishda esa oddiy serializer ishlaydi.
         """
-        if self.action == 'create':
+        if self.action == "create":
             return VenueCreateSerializer
         return VenueModelSerializer
 
     def get_permissions(self):
-        if self.action in ['list', 'retrieve']:
+        if self.action in ["list", "retrieve"]:
             return [AllowAny()]
-        if self.action == 'create':
+        if self.action == "create":
             return [IsAuthenticated()]
         return [IsAuthenticated(), IsVenueOwnerOrAdmin()]
 
     def perform_create(self, serializer):
         serializer.save()
 
-    @extend_schema(summary="Maydonlar ro'yxati", description="Filtr: sport, has_wifi, has_parking, search, ordering")
+    @extend_schema(
+        summary="Maydonlar ro'yxati",
+        description="Filtr: sport, has_wifi, has_parking, search, ordering",
+    )
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
@@ -252,20 +287,25 @@ class VenueViewSet(ModelViewSet):
         return super().destroy(request, *args, **kwargs)
 
     @extend_schema(
-        tags=['Venue'],
+        tags=["Venue"],
         summary="Statistikalarim",
         description="Tizimga kirgan foydalanuvchining o'z maydonlari statistikasi. "
-                    "Admin uchun barcha maydonlar statistikasi qaytariladi."
+        "Admin uchun barcha maydonlar statistikasi qaytariladi.",
     )
-    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated], url_path='my-stats')
+    @action(
+        detail=False,
+        methods=["get"],
+        permission_classes=[IsAuthenticated],
+        url_path="my-stats",
+    )
     def my_stats(self, request):
         # Foydalanuvchi statistikasi:
         # - Oddiy foydalanuvchi/owner: faqat o'ziga tegishli maydonlar
         # - Admin: barcha maydonlar
         user = request.user
-        is_admin_view = bool(getattr(user, 'is_admin', False) or user.is_staff)
+        is_admin_view = bool(getattr(user, "is_admin", False) or user.is_staff)
 
-        venues_qs = Venue.objects.select_related('sport').order_by('-created_at')
+        venues_qs = Venue.objects.select_related("sport").order_by("-created_at")
         if not is_admin_view:
             venues_qs = venues_qs.filter(owner=user)
 
@@ -273,45 +313,57 @@ class VenueViewSet(ModelViewSet):
         for venue in venues_qs:
             bookings_qs = venue.bookings.all()
             total_bookings = bookings_qs.count()
-            paid_bookings = bookings_qs.filter(status='paid').count()
-            canceled_bookings = bookings_qs.filter(status='canceled').count()
+            paid_bookings = bookings_qs.filter(status="paid").count()
+            canceled_bookings = bookings_qs.filter(status="canceled").count()
 
-            revenue = Payment.objects.filter(
-                booking__venue=venue, status='success'
-            ).aggregate(total=Sum('amount'))['total'] or 0
+            revenue = (
+                Payment.objects.filter(
+                    booking__venue=venue, status="success"
+                ).aggregate(total=Sum("amount"))["total"]
+                or 0
+            )
 
-            rating_data = venue.reviews.aggregate(avg=Avg('rating'), count=Count('id'))
+            rating_data = venue.reviews.aggregate(avg=Avg("rating"), count=Count("id"))
 
-            results.append({
-                "id": venue.id,
-                "name": venue.name,
-                "sport": venue.sport.name if venue.sport_id else None,
-                "status": venue.status,
-                "status_display": venue.get_status_display(),
-                "owner_id": venue.owner_id,
-                "total_bookings": total_bookings,
-                "paid_bookings": paid_bookings,
-                "canceled_bookings": canceled_bookings,
-                "total_revenue": float(revenue),
-                "average_rating": round(rating_data['avg'], 1) if rating_data['avg'] else None,
-                "review_count": rating_data['count'],
-            })
+            results.append(
+                {
+                    "id": venue.id,
+                    "name": venue.name,
+                    "sport": venue.sport.name if venue.sport_id else None,
+                    "status": venue.status,
+                    "status_display": venue.get_status_display(),
+                    "owner_id": venue.owner_id,
+                    "total_bookings": total_bookings,
+                    "paid_bookings": paid_bookings,
+                    "canceled_bookings": canceled_bookings,
+                    "total_revenue": float(revenue),
+                    "average_rating": round(rating_data["avg"], 1)
+                    if rating_data["avg"]
+                    else None,
+                    "review_count": rating_data["count"],
+                }
+            )
 
-        return Response({
-            "is_admin_view": is_admin_view,
-            "count": len(results),
-            "results": results,
-        })
+        return Response(
+            {
+                "is_admin_view": is_admin_view,
+                "count": len(results),
+                "results": results,
+            }
+        )
 
 
 class VenueImageViewSet(ModelViewSet):
     """Maydon rasmlari — admin panelda boshqariladi"""
+
     queryset = VenueImage.objects.select_related("venue__owner")
     serializer_class = VenueImageModelSerializer
     permission_classes = [AllowAny]
 
     def get_permissions(self):
-        return [AllowAny()] if self.action in ['list', 'retrieve'] else [IsAuthenticated()]
+        return (
+            [AllowAny()] if self.action in ["list", "retrieve"] else [IsAuthenticated()]
+        )
 
     def _check_venue_owner(self, venue):
         if venue.owner != self.request.user and not self.request.user.is_admin:
@@ -330,15 +382,22 @@ class VenueImageViewSet(ModelViewSet):
 #  BOOKING
 # ══════════════════════════════════════════════════════
 
-@extend_schema(tags=['Booking'])
-class BookingViewSet(CreateModelMixin, RetrieveModelMixin,
-                     UpdateModelMixin, ListModelMixin, GenericViewSet):
+
+@extend_schema(tags=["Booking"])
+class BookingViewSet(
+    CreateModelMixin,
+    RetrieveModelMixin,
+    UpdateModelMixin,
+    ListModelMixin,
+    GenericViewSet,
+):
     """Bron tizimi"""
+
     serializer_class = BookingModelSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
     filterset_class = BookingFilter
-    http_method_names = ['get', 'post', 'patch', 'head', 'options']
+    http_method_names = ["get", "post", "patch", "head", "options"]
 
     def get_queryset(self):
         user = self.request.user
@@ -365,7 +424,8 @@ class BookingViewSet(CreateModelMixin, RetrieveModelMixin,
             Venue.objects.select_for_update().get(pk=venue.pk)
 
             overlapping = Booking.objects.select_for_update().filter(
-                venue=venue, date=date,
+                venue=venue,
+                date=date,
                 status__in=["pending", "paid"],
                 start_time__lt=end_time,
                 end_time__gt=start_time,
@@ -398,14 +458,18 @@ class BookingViewSet(CreateModelMixin, RetrieveModelMixin,
 
 
 @extend_schema(
-    tags=['Booking'],
+    tags=["Booking"],
     summary="Maydonning band soatlari",
     description="Berilgan sanada qaysi soatlar band ekanini qaytaradi",
-    parameters=[OpenApiParameter(
-        name='date', type=OpenApiTypes.DATE,
-        location=OpenApiParameter.QUERY, required=True,
-        description="Sana formati: YYYY-MM-DD"
-    )]
+    parameters=[
+        OpenApiParameter(
+            name="date",
+            type=OpenApiTypes.DATE,
+            location=OpenApiParameter.QUERY,
+            required=True,
+            description="Sana formati: YYYY-MM-DD",
+        )
+    ],
 )
 class VenueBookedSlotsAPIView(APIView):
     permission_classes = [AllowAny]
@@ -417,28 +481,38 @@ class VenueBookedSlotsAPIView(APIView):
         try:
             valid_date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
         except ValueError:
-            return Response({"error": "Sana formati noto'g'ri. YYYY-MM-DD formatida yuboring."}, status=400)
+            return Response(
+                {"error": "Sana formati noto'g'ri. YYYY-MM-DD formatida yuboring."},
+                status=400,
+            )
         if not Venue.objects.filter(pk=venue_id).exists():
             return Response({"error": "Maydon topilmadi"}, status=404)
 
-        booked = Booking.objects.filter(
-            venue_id=venue_id, date=valid_date
-        ).exclude(status=Booking.Status.CANCELED).values("start_time", "end_time")
+        booked = (
+            Booking.objects.filter(venue_id=venue_id, date=valid_date)
+            .exclude(status=Booking.Status.CANCELED)
+            .values("start_time", "end_time")
+        )
 
-        return Response({"booked": [
-            {"start": str(b["start_time"]), "end": str(b["end_time"])}
-            for b in booked
-        ]})
+        return Response(
+            {
+                "booked": [
+                    {"start": str(b["start_time"]), "end": str(b["end_time"])}
+                    for b in booked
+                ]
+            }
+        )
 
 
 @extend_schema(
-    tags=['Venue'],
+    tags=["Venue"],
     summary="Mening arenalarim statistikasi",
     description="Foydalanuvchining o'ziga tegishli arenalari bo'yicha bron, daromad va reyting statistikasi. "
-                "Admin bo'lsa — barcha arenalar statistikasi ko'rsatiladi."
+    "Admin bo'lsa — barcha arenalar statistikasi ko'rsatiladi.",
 )
 class MyVenueStatsAPIView(APIView):
     """Har bir foydalanuvchi/admin uchun arena statistikasi."""
+
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -457,39 +531,50 @@ class MyVenueStatsAPIView(APIView):
             paid_count = bookings_qs.filter(status=Booking.Status.PAID).count()
             canceled_count = bookings_qs.filter(status=Booking.Status.CANCELED).count()
 
-            venue_revenue = Payment.objects.filter(
-                status=Payment.Status.SUCCESS, booking__venue=venue
-            ).aggregate(total=Sum("amount"))["total"] or 0
+            venue_revenue = (
+                Payment.objects.filter(
+                    status=Payment.Status.SUCCESS, booking__venue=venue
+                ).aggregate(total=Sum("amount"))["total"]
+                or 0
+            )
 
-            results.append({
-                "id": venue.id,
-                "name": venue.name,
-                "sport": venue.sport.name if venue.sport else None,
-                "status": venue.status,
-                "status_display": venue.get_status_display(),
-                "owner_id": venue.owner_id,
-                "total_bookings": bookings_qs.count(),
-                "paid_bookings": paid_count,
-                "canceled_bookings": canceled_count,
-                "total_revenue": venue_revenue,
-                "average_rating": round(venue.avg_rating, 1) if venue.avg_rating else None,
-                "review_count": venue.reviews_total,
-            })
+            results.append(
+                {
+                    "id": venue.id,
+                    "name": venue.name,
+                    "sport": venue.sport.name if venue.sport else None,
+                    "status": venue.status,
+                    "status_display": venue.get_status_display(),
+                    "owner_id": venue.owner_id,
+                    "total_bookings": bookings_qs.count(),
+                    "paid_bookings": paid_count,
+                    "canceled_bookings": canceled_count,
+                    "total_revenue": venue_revenue,
+                    "average_rating": round(venue.avg_rating, 1)
+                    if venue.avg_rating
+                    else None,
+                    "review_count": venue.reviews_total,
+                }
+            )
 
-        return Response({
-            "is_admin_view": user.is_admin,
-            "count": len(results),
-            "results": results,
-        })
+        return Response(
+            {
+                "is_admin_view": user.is_admin,
+                "count": len(results),
+                "results": results,
+            }
+        )
 
 
 # ══════════════════════════════════════════════════════
 #  PAYMENT — Swagger dan yashirilgan
 # ══════════════════════════════════════════════════════
 
+
 @extend_schema(exclude=True)
 class PaymentViewSet(ModelViewSet):
     """To'lovlar — hozir frontend ishlatmaydi"""
+
     serializer_class = PaymentModelSerializer
     permission_classes = [IsAuthenticated]
     queryset = Payment.objects.select_related("booking__user", "booking__venue")
@@ -510,9 +595,11 @@ class PaymentViewSet(ModelViewSet):
 #  REVIEW
 # ══════════════════════════════════════════════════════
 
-@extend_schema(tags=['Review'])
+
+@extend_schema(tags=["Review"])
 class ReviewViewSet(ModelViewSet):
     """Sharhlar"""
+
     queryset = Review.objects.select_related("user", "venue")
     serializer_class = ReviewModelSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
@@ -530,7 +617,9 @@ class ReviewViewSet(ModelViewSet):
             user=user, venue=venue, status__in=["paid", "pending"]
         ).exists()
         if not has_booking and not user.is_admin:
-            raise PermissionDenied("Sharh yozish uchun avval bu maydonni bron qilishingiz kerak.")
+            raise PermissionDenied(
+                "Sharh yozish uchun avval bu maydonni bron qilishingiz kerak."
+            )
         if Review.objects.filter(user=user, venue=venue).exists():
             raise PermissionDenied("Siz bu maydon uchun allaqachon sharh yozgansiz.")
         serializer.save(user=user)
@@ -573,9 +662,11 @@ class ReviewViewSet(ModelViewSet):
 #  FAVORITE
 # ══════════════════════════════════════════════════════
 
-@extend_schema(tags=['Favorite'])
+
+@extend_schema(tags=["Favorite"])
 class FavoriteViewSet(ModelViewSet):
     """Sevimli maydonlar"""
+
     serializer_class = FavoriteModelSerializer
     permission_classes = [IsAuthenticated]
 
@@ -613,7 +704,7 @@ class FavoriteViewSet(ModelViewSet):
     "maydonlar soni, ro'yxatdan o'tgan foydalanuvchilar soni, sport turidan "
     "qat'i nazar to'langan (tasdiqlangan) bronlar soni va o'rtacha reyting.",
 )
-class PlatformStatsAPIView(APIView):               
+class PlatformStatsAPIView(APIView):
     """Ommaviy (login talab qilmaydigan) statistika — bosh sahifa, footer va 'Biz haqimizda'
     sahifasidagi raqamlar shu yerdan, bevosita bazadan hisoblanadi."""
 

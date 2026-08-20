@@ -51,7 +51,7 @@ export default function HeroSection() {
 
     return (
         <section
-            className="relative w-full min-h-screen bg-slate-950 text-white flex items-center justify-center pt-24 pb-16 overflow-hidden">
+            className="relative w-full bg-slate-950 text-white flex items-center justify-center pt-6 sm:pt-8 lg:pt-10 pb-16 overflow-hidden">
 
             {/* 1. MAKATEDAGI STADION CHIROQLARI VA NEON RANGLAR (Faqat standart klasslar) */}
             <div className="absolute inset-0 z-0 pointer-events-none">
@@ -174,13 +174,13 @@ export default function HeroSection() {
                     initial={{opacity: 0, scale: 0.9}}
                     animate={{opacity: 1, scale: 1}}
                     transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1]}}
-                    className="lg:col-span-7 flex flex-col justify-center items-center relative py-6 lg:py-0 gap-6"
+                    className="lg:col-span-7 flex flex-row justify-center items-center relative py-6 lg:py-0 gap-3 sm:gap-4 lg:gap-6 w-full"
                 >
                     {/* Logotip ortidagi yorqin yashil doira neon */}
                     <div
                         className="absolute w-64 h-64 bg-neon/20 opacity-30 blur-[100px] rounded-full pointer-events-none"/>
 
-                    <div className="w-64 h-64 sm:w-80 sm:h-80 xl:w-96 xl:h-96 flex items-center justify-center">
+                    <div className="w-40 h-40 sm:w-64 sm:h-64 md:w-80 md:h-80 xl:w-96 xl:h-96 flex items-center justify-center flex-shrink-0">
                         <svg viewBox="-70 0 470 400"
                              className="w-full h-full drop-shadow-[0_0_35px_rgba(57,255,20,0.3)]" fill="none"
                              xmlns="http://www.w3.org/2000/svg">
@@ -220,21 +220,21 @@ export default function HeroSection() {
                         </svg>
                     </div>
 
-                    {/* Ixcham sport turlari teglari — logo ostida, bazadan real vaqtda olinadi */}
+                    {/* Ixcham sport turlari teglari — logoning o'ng tomonida, tagma-tag, bazadan real vaqtda olinadi */}
                     {sports.length > 0 && (
                         <motion.div
-                            initial={{opacity: 0, y: 16}}
-                            animate={{opacity: 1, y: 0}}
+                            initial={{opacity: 0, x: 16}}
+                            animate={{opacity: 1, x: 0}}
                             transition={{duration: 0.6, delay: 0.5}}
-                            className="flex flex-wrap items-center justify-center gap-2 max-w-md relative z-10"
+                            className="flex flex-col items-start gap-2.5 sm:gap-3 relative z-10 flex-shrink-0"
                         >
                             {sports.slice(0, 8).map((sport) => (
                                 <button
                                     key={sport.id}
                                     onClick={() => router.push(`/venues?sport=${sport.id}`)}
-                                    className="flex items-center gap-1.5 bg-slate-900/80 hover:bg-neon/10 border border-slate-800 hover:border-neon/40 text-slate-300 hover:text-neon px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer backdrop-blur-sm"
+                                    className="flex items-center gap-2 bg-slate-900/80 hover:bg-neon/10 border border-slate-800 hover:border-neon/40 text-slate-300 hover:text-neon px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-full text-sm sm:text-base font-bold transition-all cursor-pointer backdrop-blur-sm whitespace-nowrap"
                                 >
-                                    <span className="text-sm leading-none">{getEmoji(sport.name)}</span>
+                                    <span className="text-base sm:text-lg leading-none">{getEmoji(sport.name)}</span>
                                     <span>{sport.name}</span>
                                 </button>
                             ))}

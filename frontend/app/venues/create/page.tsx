@@ -558,6 +558,11 @@ export default function AddVenuePage() {
                     <div>
                         <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Stadion
                             rasmlari</label>
+                        <p className="text-xs text-gray-500 mb-2">
+                            Kamida <span className="text-[#39FF14] font-bold">2 ta</span>, ko&apos;pi bilan{" "}
+                            <span className="font-bold">10 ta</span> rasm yuklashingiz shart — stadion faqat shundan
+                            keyin saytda chop etiladi.
+                        </p>
                         <div
                             className="relative border-2 border-dashed border-[#20242c] hover:border-[#39FF14] rounded-xl p-6 text-center cursor-pointer bg-[#141821]">
                             <input type="file" multiple accept="image/*" onChange={handleImageChange}
@@ -565,18 +570,30 @@ export default function AddVenuePage() {
                             <span className="text-sm text-gray-400">📸 Rasmlarni tanlang</span>
                         </div>
                         {previews.length > 0 && (
-                            <div
-                                className="grid grid-cols-3 sm:grid-cols-5 gap-3 mt-4 bg-[#0E1117] p-3 rounded-xl border border-[#20242c]">
-                                {previews.map((src, index) => (
-                                    <div key={index}
-                                         className="relative group w-full h-20 border border-[#20242c] rounded-lg overflow-hidden">
-                                        <img src={src} alt="preview" className="w-full h-full object-cover"/>
-                                        <button type="button" onClick={() => removeImage(index)}
-                                                className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">✕
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
+                            <>
+                                <div className="flex items-center gap-2 mt-3">
+                                    <span className={`text-xs font-bold ${images.length >= 2 ? "text-[#39FF14]" : "text-amber-400"}`}>
+                                        {images.length >= 2 ? "✓" : "⚠"} {images.length} / 10 ta rasm yuklandi
+                                    </span>
+                                    {images.length < 2 && (
+                                        <span className="text-xs text-amber-400">
+                                            (yana kamida {2 - images.length} ta rasm kerak)
+                                        </span>
+                                    )}
+                                </div>
+                                <div
+                                    className="grid grid-cols-3 sm:grid-cols-5 gap-3 mt-2 bg-[#0E1117] p-3 rounded-xl border border-[#20242c]">
+                                    {previews.map((src, index) => (
+                                        <div key={index}
+                                             className="relative group w-full h-20 border border-[#20242c] rounded-lg overflow-hidden">
+                                            <img src={src} alt="preview" className="w-full h-full object-cover"/>
+                                            <button type="button" onClick={() => removeImage(index)}
+                                                    className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">✕
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
                         )}
                     </div>
 
@@ -597,10 +614,14 @@ export default function AddVenuePage() {
                     {/* Yuborish tugmasi */}
                     <button
                         type="submit"
-                        disabled={loading || outOfTashkent}
-                        className="w-full bg-[#39FF14] hover:bg-[#00D26A] disabled:bg-gray-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition"
+                        disabled={loading || outOfTashkent || images.length < 2}
+                        className="w-full bg-[#39FF14] hover:bg-[#00D26A] disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-xl shadow-lg transition"
                     >
-                        {loading ? "Yuborilmoqda..." : "Maydon qo'shish uchun ariza topshirish"}
+                        {loading
+                            ? "Yuborilmoqda..."
+                            : images.length < 2
+                                ? `Yana kamida ${2 - images.length} ta rasm yuklang`
+                                : "Maydon qo'shish uchun ariza topshirish"}
                     </button>
                 </form>
                 </motion.div>
