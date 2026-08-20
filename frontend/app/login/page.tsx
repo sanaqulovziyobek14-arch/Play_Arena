@@ -3,11 +3,15 @@
 import {Suspense, useEffect, useState} from "react";
 import Link from "next/link";
 import {motion} from "framer-motion";
-import {useRouter} from "next/navigation";
+import {useRouter, useSearchParams} from "next/navigation";
 import {authAPI, setTokens, statsAPI} from "@/services/api";
 
 function LoginContent() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    // Foydalanuvchi qaysi sahifadan "avval tizimga kiring" deb yo'naltirilgan bo'lsa,
+    // login/ro'yxatdan o'tishdan so'ng o'sha yerga qaytariladi (masalan /venues/create)
+    const callbackUrl = searchParams.get("callback") || "/";
     const [isLogin, setIsLogin] = useState(true);
     const [venuesCount, setVenuesCount] = useState<number | null>(null);
 
@@ -108,7 +112,7 @@ function LoginContent() {
                 // ── KIRISH — faqat username + password
                 const res = await authAPI.login({username: username.trim(), password});
                 setTokens(res.access, res.refresh);
-                router.push("/");
+                router.push(callbackUrl);
             } else {
                 // ── RO'YXATDAN O'TISH
                 await authAPI.register({
@@ -122,7 +126,7 @@ function LoginContent() {
                 // Muvaffaqiyatli ro'yxatdan o'tgandan keyin avtomatik login
                 const res = await authAPI.login({username: username.trim(), password});
                 setTokens(res.access, res.refresh);
-                router.push("/");
+                router.push(callbackUrl);
             }
         } catch (e: any) {
             let msg = e.message || "Xatolik yuz berdi";

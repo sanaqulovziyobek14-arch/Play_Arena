@@ -148,7 +148,7 @@ def db_get_bookings(date: datetime.date, user_id: int = None, venue_id: int = No
             qs = qs.filter(venue_id=venue_id)
         if user_id and user_id != OWNER_CHAT_ID:
             qs = qs.filter(
-                Q(venue__owner__username=str(user_id)) | Q(venue__owner__telegram_chat_id=str(user_id))
+                venue__owner__username=str(user_id)
             )
         return list(qs.order_by("start_time"))
     except Exception as e:
@@ -206,7 +206,7 @@ def db_stats(d1: datetime.date, d2: datetime.date, user_id: int = None) -> dict:
         qs = Booking.objects.select_related("user", "venue").filter(date__gte=d1, date__lte=d2)
         if user_id and user_id != OWNER_CHAT_ID:
             qs = qs.filter(
-                Q(venue__owner__username=str(user_id)) | Q(venue__owner__telegram_chat_id=str(user_id))
+                venue__owner__username=str(user_id)
             )
         lst = list(qs)
         return {
@@ -501,9 +501,11 @@ async def process_venue_location_obj(message: Message, state: FSMContext):
     await state.update_data(latitude=lat, longitude=lon, address=address_text)
     await message.answer(
         f"🗺️ **Aniqlandi:**\n`{address_text}`\n\n"
-        f"📸 **8-qadam:** Maydon rasmini yuboring (Faqat rasm formatida):",
+        f"📸 **8-qadam:** Maydon rasmlarini yuboring (kamida 2 ta, ketma-ket yuborishingiz mumkin).\n"
+        f"Barcha rasmlarni yuborib bo'lgach, *\"✅ Tayyor\"* deb yozing:",
         parse_mode="Markdown"
     )
+    await state.update_data(photo_file_ids=[])
     await state.set_state(AddVenueState.photo)
 
 
@@ -517,19 +519,50 @@ async def process_venue_location_text(message: Message, state: FSMContext):
     await message.answer(
         f"🗺️ **Kiritilgan manzil:**\n`{text_val}`\n\n"
         f"⚠️ _Aniq xarita koordinatalari kiritilmadi. Admin tasdiqlashda qo'lda belgilanadi._\n\n"
-        f"📸 **8-qadam:** Maydon rasmini yuboring (Faqat rasm formatida):",
+        f"📸 **8-qadam:** Maydon rasmlarini yuboring (kamida 2 ta, ketma-ket yuborishingiz mumkin).\n"
+        f"Barcha rasmlarni yuborib bo'lgach, *\"✅ Tayyor\"* deb yozing:",
         parse_mode="Markdown", reply_markup=ReplyKeyboardRemove()
     )
+    await state.update_data(photo_file_ids=[])
     await state.set_state(AddVenueState.photo)
 
 
-# RASM YUKLANGANDAGI MUKAMMAL INTERFAZ (To'xtab qolish muammosi to'liq yechildi)
+# RASM(LAR) YUKLANGANDA — har bir rasm ro'yxatga qo'shiladi
 @dp.message(AddVenueState.photo, F.photo)
 async def process_venue_photo(message: Message, state: FSMContext):
     photo = message.photo[-1]
-    await state.update_data(photo_file_id=photo.file_id)
-
     data = await state.get_data()
+    photo_ids = data.get("photo_file_ids", [])
+    photo_ids.append(photo.file_id)
+    await state.update_data(photo_file_ids=photo_ids)
+
+    if len(photo_ids) < 2:
+        await message.answer(
+            f"✅ 1-rasm qabul qilindi.\n"
+            f"📸 Kamida yana *1 ta* rasm yuboring (sayt qoidasiga ko'ra kamida 2 ta rasm shart).",
+            parse_mode="Markdown"
+        )
+    else:
+        await message.answer(
+            f"✅ Jami *{len(photo_ids)} ta* rasm qabul qilindi.\n"
+            f"📸 Yana rasm yuborishingiz mumkin, yoki tayyor bo'lsa *\"✅ Tayyor\"* deb yozing:",
+            parse_mode="Markdown"
+        )
+
+
+# Foydalanuvchi "✅ Tayyor" deb yozganda — yakuniy ko'rib chiqish paneli chiqadi
+@dp.message(AddVenueState.photo, F.text.lower().in_(["✅ tayyor", "tayyor"]))
+async def process_venue_photos_done(message: Message, state: FSMContext):
+    data = await state.get_data()
+    photo_ids = data.get("photo_file_ids", [])
+
+    if len(photo_ids) < 2:
+        await message.answer(
+            f"⚠️ Hozircha *{len(photo_ids)} ta* rasm bor. "
+            f"Sayt qoidasiga ko'ra kamida *2 ta* rasm shart — yana rasm yuboring:",
+            parse_mode="Markdown"
+        )
+        return
 
     # Interaktiv yakuniy ko'rib chiqish paneli (UX)
     summary_text = (
@@ -539,7 +572,8 @@ async def process_venue_photo(message: Message, state: FSMContext):
         f"🔹 **Soatlik narxi:** {int(data.get('price')):,} so'm\n"
         f"🔹 **Tavsif:** {data.get('description')}\n"
         f"🔹 **Ish vaqti:** {data.get('start_time')} - {data.get('end_time')}\n"
-        f"📍 **Aniq manzil:** {data.get('address')}\n\n"
+        f"📍 **Aniq manzil:** {data.get('address')}\n"
+        f"🖼️ **Rasmlar soni:** {len(photo_ids)} ta\n\n"
         f"📢 _Barcha ma'lumotlar to'g'ri bo'lsa, quyidagi tugma orqali saytga yuklashga ruxsat bering._"
     )
 
@@ -551,7 +585,7 @@ async def process_venue_photo(message: Message, state: FSMContext):
     builder.adjust(1, 2)
 
     await message.answer_photo(
-        photo=photo.file_id,
+        photo=photo_ids[0],
         caption=summary_text,
         reply_markup=builder.as_markup(),
         parse_mode="Markdown"
@@ -569,17 +603,20 @@ async def venue_submit_final_handler(callback: CallbackQuery, state: FSMContext)
     await callback.message.edit_reply_markup(reply_markup=None)
     await callback.message.answer("⏳ Arizangiz tizimga yozilmoqda va adminga yuborilmoqda...")
 
-    # Rasmni vaqtinchalik yuklab olish va DBga saqlash jarayoni
-    photo_file_id = data.get('photo_file_id')
-    file_info = await bot.get_file(photo_file_id)
-
+    # Rasmlarni vaqtinchalik yuklab olish va DBga saqlash jarayoni
+    photo_file_ids = data.get('photo_file_ids', [])
     temp_dir = os.path.join(settings.BASE_DIR, 'media', 'temp')
     os.makedirs(temp_dir, exist_ok=True)
-    temp_file_path = os.path.join(temp_dir, f"{photo_file_id}.jpg")
-    await bot.download_file(file_info.file_path, temp_file_path)
+
+    temp_file_paths = []
+    for fid in photo_file_ids:
+        file_info = await bot.get_file(fid)
+        temp_path = os.path.join(temp_dir, f"{fid}.jpg")
+        await bot.download_file(file_info.file_path, temp_path)
+        temp_file_paths.append(temp_path)
 
     @sync_to_async
-    def save_venue_and_image_to_db(user_id):
+    def save_venue_and_images_to_db(user_id):
         owner_user = User.objects.filter(username=str(user_id)).first()
         if not owner_user:
             owner_user, _ = User.objects.get_or_create(
@@ -603,16 +640,19 @@ async def venue_submit_final_handler(callback: CallbackQuery, state: FSMContext)
             sport=sport_obj
         )
 
-        venue_image = VenueImage(venue=venue)
-        with open(temp_file_path, 'rb') as f:
-            venue_image.image.save(f"{data['name']}_bot.jpg", File(f), save=False)
-        venue_image.save()
+        for idx, temp_path in enumerate(temp_file_paths):
+            venue_image = VenueImage(venue=venue)
+            with open(temp_path, 'rb') as f:
+                venue_image.image.save(f"{data['name']}_bot_{idx}.jpg", File(f), save=False)
+            venue_image.save()
 
-        if os.path.exists(temp_file_path):
-            os.remove(temp_file_path)
+        for temp_path in temp_file_paths:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
         return venue
 
-    new_venue = await save_venue_and_image_to_db(callback.from_user.id)
+    new_venue = await save_venue_and_images_to_db(callback.from_user.id)
 
     # Foydalanuvchiga muvaffaqiyatli xabari
     await callback.message.answer(
@@ -638,14 +678,15 @@ async def venue_submit_final_handler(callback: CallbackQuery, state: FSMContext)
         f"💰 Narxi: {int(new_venue.price):,} so'm\n"
         f"📝 Tavsif: {new_venue.description}\n"
         f"⏰ Ish vaqti: {new_venue.start_time} - {new_venue.end_time}\n"
-        f"📍 Manzil: {data.get('address')}\n\n"
+        f"📍 Manzil: {data.get('address')}\n"
+        f"🖼️ Rasmlar soni: {len(photo_file_ids)} ta\n\n"
         f"👤 Yuboruvchi: {callback.from_user.full_name} (ID: {callback.from_user.id})"
     )
 
     if OWNER_CHAT_ID:
         await bot.send_photo(
             chat_id=OWNER_CHAT_ID,
-            photo=photo_file_id,
+            photo=photo_file_ids[0],
             caption=admin_text,
             reply_markup=admin_keyboard
         )
@@ -1015,13 +1056,15 @@ async def daily_report():
 
     @sync_to_async
     def get_distinct_owners():
-        return list(
-            User.objects.filter(role="owner").exclude(telegram_chat_id__isnull=True).exclude(telegram_chat_id=""))
+        # Owner hisoblari bot orqali username=str(telegram_id) qilib yaratiladi,
+        # shuning uchun aynan shu maydon orqali chat_id ni aniqlaymiz.
+        # Faqat raqamlardan iborat username'lar haqiqiy Telegram ID hisoblanadi.
+        return [u for u in User.objects.filter(role="owner") if u.username.isdigit()]
 
     owners = await get_distinct_owners()
     for owner in owners:
         try:
-            chat_id = int(owner.telegram_chat_id)
+            chat_id = int(owner.username)
             if chat_id == OWNER_CHAT_ID:
                 continue
             # Diqqat: bu yerda ataylab owner.username emas, aynan shu ownerning
