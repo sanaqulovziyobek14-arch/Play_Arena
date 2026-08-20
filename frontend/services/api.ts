@@ -285,6 +285,25 @@ export const authAPI = {
             method: "POST",
             body: JSON.stringify({refresh}),
         }),
+    /** Parolni almashtirish */
+    changePassword: (data: { old_password: string; new_password: string }) =>
+        apiFetch<{ detail: string }>("/auth/change-password", {
+            method: "POST",
+            body: JSON.stringify(data),
+        }),
+};
+
+export interface AppNotification {
+    id: string;
+    icon: string;
+    title: string;
+    message: string;
+    created_at: string;
+}
+
+export const notificationsAPI = {
+    /** Foydalanuvchining real bildirishnomalari (bron va maydon holati asosida) */
+    getMine: () => apiFetch<AppNotification[]>("/notifications/my"),
 };
 // ════════════════════════════════════════
 //  USER API

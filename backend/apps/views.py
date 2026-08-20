@@ -92,6 +92,33 @@ class UserCreateApiView(CreateAPIView):
 
 
 @extend_schema(tags=["User"])
+class ChangePasswordAPIView(APIView):
+    """Tizimga kirgan foydalanuvchi o'z parolini almashtiradi."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        old_password = request.data.get("old_password", "")
+        new_password = request.data.get("new_password", "")
+
+        if not old_password or not new_password:
+            raise ValidationError({"detail": "Joriy va yangi parol kiritilishi shart."})
+
+        user = request.user
+        if not user.check_password(old_password):
+            raise ValidationError({"old_password": "Joriy parol noto'g'ri."})
+
+        if len(new_password) < 8:
+            raise ValidationError({"new_password": "Yangi parol kamida 8 ta belgidan iborat bo'lishi kerak."})
+
+        if old_password == new_password:
+            raise ValidationError({"new_password": "Yangi parol joriy paroldan farq qilishi kerak."})
+
+        user.set_password(new_password)
+        user.save(update_fields=["password"])
+        return Response({"detail": "Parol muvaffaqiyatli o'zgartirildi."}, status=200)
+
+
+@extend_schema(tags=["User"])
 class UserViewSet(ModelViewSet):
     """Profil boshqaruvi"""
 
@@ -695,6 +722,62 @@ class FavoriteViewSet(ModelViewSet):
     @extend_schema(summary="Sevimlilardan o'chirish")
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
+
+
+@extend_schema(
+    tags=["User"],
+    summary="Mening bildirishnomalarim",
+    description="Foydalanuvchining o'z bronlari holati (tasdiqlandi/bekor qilindi) va, agar u "
+    "maydon egasi bo'lsa, o'z maydonlarining moderatsiya holati (tasdiqlandi/rad etildi) "
+    "asosida hosil qilingan real bildirishnomalar ro'yxati.",
+)
+class MyNotificationsAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        notifications = []
+
+        booking_texts = {
+            Booking.Status.PAID: ("✅", "Broningiz tasdiqlandi"),
+            Booking.Status.CANCELED: ("❌", "Broningiz bekor qilindi"),
+        }
+        for booking in (
+            Booking.objects.filter(user=user)
+            .exclude(status=Booking.Status.PENDING)
+            .select_related("venue")
+            .order_by("-created_at")[:20]
+        ):
+            icon, title = booking_texts.get(booking.status, ("ℹ️", "Bron holati yangilandi"))
+            notifications.append({
+                "id": f"booking-{booking.id}",
+                "icon": icon,
+                "title": title,
+                "message": f"{booking.venue.name} — {booking.date} kuni soat {booking.start_time}",
+                "created_at": booking.created_at,
+            })
+
+        if user.is_owner or user.is_admin:
+            venue_texts = {
+                "approved": ("✅", "Maydon tasdiqlandi"),
+                "rejected": ("❌", "Maydon rad etildi"),
+            }
+            for venue in (
+                Venue.objects.filter(owner=user)
+                .exclude(status="pending")
+                .order_by("-created_at")[:20]
+            ):
+                icon, title = venue_texts.get(venue.status, ("ℹ️", "Maydon holati yangilandi"))
+                notifications.append({
+                    "id": f"venue-{venue.id}",
+                    "icon": icon,
+                    "title": title,
+                    "message": f'"{venue.name}" arizangiz bo\'yicha qaror qabul qilindi',
+                    "created_at": venue.created_at,
+                })
+
+        notifications.sort(key=lambda n: n["created_at"], reverse=True)
+        return Response(notifications[:30])
 
 
 @extend_schema(

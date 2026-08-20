@@ -6,7 +6,8 @@ from apps.views import (
     UserViewSet, SportTypeViewSet, VenueViewSet, VenueImageViewSet,
     BookingViewSet, PaymentViewSet, ReviewViewSet, FavoriteViewSet,
     VenueBookedSlotsAPIView, UserCreateApiView, CustomTokenObtainPairView,
-    MyVenueStatsAPIView,PlatformStatsAPIView,
+    MyVenueStatsAPIView, PlatformStatsAPIView, ChangePasswordAPIView,
+    MyNotificationsAPIView,
 )
 
 router = SimpleRouter(trailing_slash=False)
@@ -25,6 +26,8 @@ urlpatterns = [
                   path("venues/my-stats", MyVenueStatsAPIView.as_view(), name="venue-my-stats"),
                   path("stats", PlatformStatsAPIView.as_view(), name="platform-stats"),
                   path("auth/register", UserCreateApiView.as_view()),
+                  path("auth/change-password", ChangePasswordAPIView.as_view(), name="change-password"),
+                  path("notifications/my", MyNotificationsAPIView.as_view(), name="my-notifications"),
                   path("token", CustomTokenObtainPairView.as_view(), name="token_obtain_pair"),
                   path("token/refresh", TokenRefreshView.as_view(), name="token_refresh"),
               ] + router.urls

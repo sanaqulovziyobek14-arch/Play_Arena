@@ -8,7 +8,7 @@ import Navbar from "@/components/navbar/Navbar";
 import Footer from "@/components/footer/Footer";
 import {
   getAccessToken, getCurrentUserId, clearTokens,
-  userAPI, bookingsAPI, favoritesAPI, type User,
+  userAPI, bookingsAPI, favoritesAPI, notificationsAPI, type User,
 } from "@/services/api";
 
 const ROLE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
@@ -17,13 +17,12 @@ const ROLE_CONFIG: Record<string, { label: string; color: string; bg: string }> 
   admin: { label: "Administrator", color: "#a78bfa", bg: "rgba(167,139,250,0.08)" },
 };
 
-const MENU = [
+const buildMenu = (notifCount: number | null) => [
   { icon: "📅", label: "Mening bronlarim",            href: "/bookings", badge: null as number | null },
   { icon: "❤️", label: "Sevimli maydonlar",            href: "/favorites", badge: null as number | null },
   { icon: "🤖", label: "Telegram bot orqali boshqarish", href: "https://t.me/PlayArena_bronqilsih_bot", badge: null as number | null, external: true },
-  { icon: "🔔", label: "Bildirishnomalar",             href: "#",         badge: 3 as number | null    },
-  { icon: "🔒", label: "Parolni o'zgartirish",         href: "#",         badge: null                  },
-  { icon: "💬", label: "Yordam va qo'llab-quvvatlash", href: "#",         badge: null                  },
+  { icon: "🔔", label: "Bildirishnomalar",             href: "/profile/notifications", badge: notifCount },
+  { icon: "🔒", label: "Parolni o'zgartirish",         href: "/profile/change-password", badge: null as number | null },
 ];
 
 export default function ProfilePage() {
@@ -31,6 +30,7 @@ export default function ProfilePage() {
   const [user, setUser]               = useState<User | null>(null);
   const [bookingsCount, setBookings]  = useState<number | null>(null);
   const [favsCount, setFavs]          = useState<number | null>(null);
+  const [notifCount, setNotifCount]   = useState<number | null>(null);
   const [loading, setLoading]         = useState(true);
   const [toast, setToast]             = useState("");
   const [activeTab, setActiveTab]     = useState<"info"|"settings">("info");
@@ -51,10 +51,12 @@ export default function ProfilePage() {
       userAPI.getMe(uid),
       bookingsAPI.getAll().catch(() => null),
       favoritesAPI.getAll().catch(() => null),
-    ]).then(([u, bRes, fRes]) => {
+      notificationsAPI.getMine().catch(() => null),
+    ]).then(([u, bRes, fRes, nRes]) => {
       setUser(u);
       if (bRes) setBookings(bRes.count);
       if (fRes) setFavs(fRes.count);
+      if (nRes) setNotifCount(nRes.length);
     }).catch(() => { clearTokens(); router.push("/login"); })
       .finally(() => setLoading(false));
   }, [router]);
@@ -226,7 +228,7 @@ export default function ProfilePage() {
             borderRadius: "16px", overflow: "hidden", marginBottom: "16px",
             animation: "fadeIn .2s ease",
           }}>
-            {MENU.map(({ icon, label, href, badge, external }, i) => (
+            {buildMenu(notifCount).map(({ icon, label, href, badge, external }, i) => (
               <Link
                 key={label}
                 href={href}
@@ -237,7 +239,7 @@ export default function ProfilePage() {
                 <div style={{
                   display: "flex", alignItems: "center", gap: "14px",
                   padding: "16px 20px", cursor: "pointer", transition: "background .15s",
-                  borderBottom: i < MENU.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none",
+                  borderBottom: i < 4 ? "1px solid rgba(255,255,255,0.04)" : "none",
                 }}
                 onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.03)")}
                 onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
