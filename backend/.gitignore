@@ -1,4 +1,10 @@
-../.venv/
-../.idea/
+.venv/
+.idea/
 .env
 .env.local
+__pycache__/
+*.pyc
+media/
+!media/.gitkeep
+TZ
+file
