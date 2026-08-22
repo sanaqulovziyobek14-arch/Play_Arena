@@ -11,7 +11,7 @@ from rest_framework.fields import IntegerField, CharField, DecimalField, Seriali
 from rest_framework.serializers import ModelSerializer
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
-from apps.models import Booking, Favorite, Payment, Review, SportType, Venue, VenueImage
+from apps.models import Booking, Favorite, Payment, Review, SportType, Venue, VenueImage, UserCard
 
 User = get_user_model()
 
@@ -182,16 +182,22 @@ class BookingModelSerializer(ModelSerializer):
         model = Booking
         fields = (
             "id", "user", "venue", "venue_name", "venue_address", "venue_price",
-            "date", "start_time", "end_time", "total_price", "status", "created_at"
+            "date", "start_time", "end_time", "total_price", "payment_type", 
+            "paid_amount", "remaining_amount", "status", "created_at"
         )
-        read_only_fields = ("user", "status", "created_at")
+        read_only_fields = ("user", "status", "created_at", "paid_amount", "remaining_amount")
 
     def get_total_price(self, obj) -> Decimal:
-        import datetime
-        start = datetime.datetime.combine(datetime.date.min, obj.start_time)
-        end   = datetime.datetime.combine(datetime.date.min, obj.end_time)
-        hours = Decimal((end - start).total_seconds()) / Decimal(3600)
-        return round(obj.venue.price * hours, 2)
+        start_dt = datetime.datetime.combine(datetime.date.min, obj.start_time)
+        end_dt = datetime.datetime.combine(datetime.date.min, obj.end_time)
+        discount_boundary = datetime.datetime.combine(datetime.date.min, datetime.time(20, 0))
+        std_sec = max(0, (min(end_dt, discount_boundary) - min(start_dt, discount_boundary)).total_seconds())
+        disc_sec = max(0, (max(end_dt, discount_boundary) - max(start_dt, discount_boundary)).total_seconds())
+        std_hours = Decimal(std_sec) / Decimal(3600)
+        disc_hours = Decimal(disc_sec) / Decimal(3600)
+        total = (std_hours * obj.venue.price) + (disc_hours * obj.venue.price * Decimal("0.8"))
+        return round(total, 2)
+
 
     def validate(self, data):
         venue = data.get("venue")
@@ -212,6 +218,57 @@ class BookingModelSerializer(ModelSerializer):
                 f"Maydon faqat {venue.start_time} — {venue.end_time} oralig'ida ishlaydi."
             )
         return data
+
+
+class UserCardModelSerializer(ModelSerializer):
+    class Meta:
+        model = UserCard
+        fields = ("id", "card_holder", "card_masked", "expire_month", "expire_year", "provider", "is_default")
+
+
+class AddUserCardSerializer(ModelSerializer):
+    card_number = CharField(write_only=True, max_length=19)
+
+    class Meta:
+        model = UserCard
+        fields = ("id", "card_number", "card_holder", "expire_month", "expire_year", "provider", "is_default")
+
+    def validate_card_number(self, value):
+        import re
+        clean_number = re.sub(r'\D', '', value)
+        if len(clean_number) != 16:
+            raise ValidationError("Karta raqami 16 ta raqamdan iborat bo'lishi kerak!")
+        if not (clean_number.startswith('8600') or clean_number.startswith('5614') or clean_number.startswith('9860')):
+            raise ValidationError("Faqat Uzcard (8600, 5614) va Humo (9860) kartalari qo'llab-quvvatlanadi!")
+        return clean_number
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        clean_number = validated_data.pop('card_number')
+        masked_number = f"{clean_number[:4]} **** **** {clean_number[-4:]}"
+        simulated_token = f"tok_{clean_number[:6]}_{clean_number[-4:]}_{int(timezone.now().timestamp())}"
+
+        card, created = UserCard.objects.get_or_create(
+            user=user,
+            card_masked=masked_number,
+            defaults={
+                'card_holder': validated_data['card_holder'].upper(),
+                'card_token': simulated_token,
+                'expire_month': validated_data['expire_month'],
+                'expire_year': validated_data['expire_year'],
+                'provider': validated_data.get('provider', UserCard.Provider.CLICK),
+                'is_default': not UserCard.objects.filter(user=user).exists()
+            }
+        )
+        return card
+
+
+class InitiatePaymentSerializer(ModelSerializer):
+    booking_id = IntegerField(source="booking.id")
+    payment_option = CharField(default="deposit_50")
+    class Meta:
+        model = Payment
+        fields = ("booking_id", "payment_option")
 
 
 class PaymentModelSerializer(ModelSerializer):

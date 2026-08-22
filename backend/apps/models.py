@@ -135,12 +135,19 @@ class Booking(Model):
         PAID = "paid", "💰 To‘langan"
         CANCELED = "canceled", "❌ Bekor qilingan"
 
+    class PaymentType(TextChoices):
+        DEPOSIT_50 = 'deposit_50', '50% Avans To\'lov'
+        FULL_100 = 'full_100', '100% To\'liq To\'lov'
+
     user = ForeignKey("apps.User", CASCADE, related_name="bookings")
     venue = ForeignKey("apps.Venue", CASCADE, related_name="bookings")
     date = DateField()
     start_time = TimeField()
     end_time = TimeField()
     status = CharField(max_length=20, choices=Status, default=Status.PENDING)
+    payment_type = CharField(max_length=20, choices=PaymentType, default=PaymentType.DEPOSIT_50)
+    paid_amount = DecimalField(max_digits=12, decimal_places=2, default=0.0)
+    remaining_amount = DecimalField(max_digits=12, decimal_places=2, default=0.0)
     created_at = DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -150,6 +157,38 @@ class Booking(Model):
 
     def __str__(self):
         return f"{self.user} - {self.venue}"
+
+
+# ---------------------------------------------------------------------------------------
+
+
+class UserCard(Model):
+    class Provider(TextChoices):
+        CLICK = "click", "💳 Click"
+        PAYME = "payme", "📱 Payme"
+
+    user = ForeignKey("apps.User", CASCADE, related_name="cards")
+    card_holder = CharField("Karta egasi", max_length=100)
+    card_masked = CharField("Masklangan Karta (8600 **** **** 1234)", max_length=19)
+    card_token = CharField("Token", max_length=255, unique=True)
+    expire_month = PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(12)])
+    expire_year = PositiveSmallIntegerField(validators=[MinValueValidator(24), MaxValueValidator(45)])
+    provider = CharField(max_length=10, choices=Provider, default=Provider.CLICK)
+    is_default = BooleanField(default=False)
+    created_at = DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Foydalanuvchi Kartasi"
+        verbose_name_plural = "Foydalanuvchilar Kartalari"
+        ordering = ['-is_default', '-created_at']
+
+    def __str__(self):
+        return f"{self.card_holder} | {self.card_masked}"
+
+    def save(self, *args, **kwargs):
+        if self.is_default:
+            UserCard.objects.filter(user=self.user, is_default=True).exclude(pk=self.pk).update(is_default=False)
+        super().save(*args, **kwargs)
 
 
 # ---------------------------------------------------------------------------------------
@@ -166,6 +205,8 @@ class Payment(Model):
         FAILED = "failed", "Muvaffaqiyatsiz"
 
     booking = OneToOneField("apps.Booking", CASCADE, related_name="payment")
+    user = ForeignKey("apps.User", CASCADE, related_name="payments", null=True, blank=True)
+    card = ForeignKey("apps.UserCard", CASCADE, related_name="payments", null=True, blank=True)
     amount = DecimalField(max_digits=12, decimal_places=2)
     payment_method = CharField(max_length=20, choices=Method)
     transaction_id = CharField(max_length=255, blank=True, null=True)
@@ -178,6 +219,7 @@ class Payment(Model):
 
     def __str__(self):
         return f"{self.booking} - {self.amount} - {self.status}"
+
 
 
 # -----------------------------------------------------------------------------------------

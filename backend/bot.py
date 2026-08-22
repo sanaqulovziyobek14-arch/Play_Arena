@@ -123,12 +123,16 @@ def get_address_from_coords(lat: float, lon: float) -> str:
 def db_get_venues(user_id: int = None) -> list:
     try:
         qs = Venue.objects.select_related("owner", "sport")
+        # Admin bo'lmaganlar uchun faqat admin tasdiqlagan (APPROVED) maydonlar ko'rinadi
+        if user_id != OWNER_CHAT_ID:
+            qs = qs.filter(status='approved')
         if user_id and user_id != OWNER_CHAT_ID:
             qs = qs.filter(owner__username=str(user_id))
         return list(qs)
     except Exception as e:
         log.error(f"Error fetching venues: {e}")
         return []
+
 
 
 @sync_to_async
