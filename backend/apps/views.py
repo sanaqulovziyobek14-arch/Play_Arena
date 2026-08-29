@@ -616,6 +616,9 @@ class PaymentViewSet(ModelViewSet):
         if booking.user != self.request.user and not self.request.user.is_admin:
             raise PermissionDenied("Bu bron uchun to'lov qila olmaysiz.")
         serializer.save()
+        booking.status = Booking.Status.PAID
+        booking.save(update_fields=["status"])
+
 
 
 # ══════════════════════════════════════════════════════

@@ -8,7 +8,9 @@ import {motion} from "framer-motion";
 import {useRouter} from "next/navigation";
 import Navbar from "@/components/navbar/Navbar";
 import Footer from "@/components/footer/Footer";
+import PaymentModal from "@/components/PaymentModal";
 import {venuesAPI, bookingsAPI, paymentsAPI, getAccessToken, type Venue} from "@/services/api";
+
 
 const DAY_NAMES = ["Yakshanba", "Dushanba", "Seshanba", "Chorshanba", "Payshanba", "Juma", "Shanba"];
 const MONTH_NAMES = ["yan", "fev", "mar", "apr", "may", "iyun", "iyul", "avg", "sen", "okt", "noy", "dek"];
@@ -44,6 +46,58 @@ function slotRangeLabel(start: string) {
     return `${start} - ${String(endH).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
+/** 20:00 dan keyingi soatlar (20% chegirma) va Bilyard uchun Shanba/Yakshanba (25% narx oshishi) */
+function calculateRangePrice(basePrice: number, startT: string, endT: string, dateIso?: string, sportName?: string) {
+    if (!startT || !endT) return basePrice;
+
+    let isWeekend = false;
+    let isBilyard = false;
+
+    if (dateIso) {
+        const parts = dateIso.split("-").map(Number);
+        if (parts.length === 3) {
+            const d = new Date(parts[0], parts[1] - 1, parts[2]);
+            const dayOfWeek = d.getDay(); // 0 = Yakshanba, 6 = Shanba
+            isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+        }
+    }
+
+
+    if (sportName) {
+        const s = sportName.toLowerCase();
+        isBilyard = s.includes("bilyard") || s.includes("billiard");
+    }
+
+
+    const [sh, sm] = startT.split(":").map(Number);
+    let [eh, em] = endT.split(":").map(Number);
+    if (eh < sh || (eh === sh && (em || 0) <= (sm || 0))) eh += 24;
+
+    const startMins = sh * 60 + (sm || 0);
+    const endMins = eh * 60 + (em || 0);
+
+    // 1-HOLAT: Bilyard va Shanba/Yakshanba -> 25% narx oshadi va 20:00 chegirmasi UMUMAN TA'SIR QILMAYDI
+    if (isBilyard && isWeekend) {
+        const weekendPrice = basePrice * 1.25;
+        const durationHours = (endMins - startMins) / 60;
+        return Math.round(durationHours * weekendPrice);
+    }
+
+    // 2-HOLAT: Barcha boshqa holatlar -> 20:00 dan keyin 20% chegirma
+    const boundaryMins = 20 * 60; // 20:00
+
+    const stdMins = Math.max(0, Math.min(endMins, boundaryMins) - Math.min(startMins, boundaryMins));
+    const discMins = Math.max(0, Math.max(endMins, boundaryMins) - Math.max(startMins, boundaryMins));
+
+    const stdHours = stdMins / 60;
+    const discHours = discMins / 60;
+
+    return Math.round(stdHours * basePrice + discHours * basePrice * 0.8);
+}
+
+
+
+
 const SportIcon = ({sportName, className = "w-16 h-16 text-white"}: { sportName: string; className?: string }) => {
     const name = sportName ? sportName.toLowerCase().trim() : "";
     if (name === "futbol" || name === "mini futbol" || name === "football") {
@@ -65,183 +119,7 @@ const SportIcon = ({sportName, className = "w-16 h-16 text-white"}: { sportName:
     );
 };
 
-// ── PAYMENT MODAL ──
-function PaymentModal({
-                          venue, bookingId, startTime, endTime, date, price, onSuccess, onClose,
-                      }: {
-    venue: Venue;
-    bookingId: number;
-    startTime: string;
-    endTime: string;
-    date: string;
-    price: number;
-    onSuccess: () => void;
-    onClose: () => void;
-}) {
-    const [seconds, setSeconds] = useState(15 * 60);
-    const [paying, setPaying] = useState(false);
-    const [paid, setPaid] = useState(false);
-    const [expired, setExpired] = useState(false);
-    const [method, setMethod] = useState<"click" | "payme" | null>(null);
-    const [payError, setPayError] = useState("");
 
-    const handleClose = async () => {
-    if (paid || paying) return;
-    try {
-        await bookingsAPI.cancel(bookingId);
-    } catch {
-    }
-    onClose();
-};
-
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-
-    const handlePay = async () => {
-        if (!method) {
-            setPayError("Iltimos, to'lov usulini tanlang.");
-            return;
-        }
-        setPaying(true);
-        setPayError("");
-        try {
-            await paymentsAPI.create({
-                booking: bookingId,
-                amount: price,
-                payment_method: method,
-            });
-            setPaid(true);
-            setTimeout(onSuccess, 1200);
-        } catch (err: any) {
-            setPayError(err?.message || "To'lovni amalga oshirib bo'lmadi. Qayta urinib ko'ring.");
-        } finally {
-            setPaying(false);
-        }
-    };
-
-    return (
-        <div style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 100,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "rgba(0,0,0,0.85)",
-            backdropFilter: "blur(12px)"
-        }} onClick={() => {
-            if (!paid && !paying) onClose();
-        }}>
-            <div style={{
-                background: "#0E1117",
-                border: "1px solid rgba(255,255,255,0.08)",
-                borderRadius: "20px",
-                padding: "28px",
-                width: "100%",
-                maxWidth: "400px"
-            }} onClick={e => e.stopPropagation()}>
-                {!paid && !expired && (
-                    <>
-                        <h2 style={{
-                            fontSize: "18px",
-                            fontWeight: 800,
-                            color: "#fff",
-                            marginBottom: "16px"
-                        }}>To&apos;lovni tasdiqlash</h2>
-                        <p style={{
-                            color: "rgba(255,255,255,0.5)",
-                            fontSize: "13px",
-                            marginBottom: "12px"
-                        }}>Joy: {venue.name}</p>
-                        <p style={{
-                            color: "rgba(255,255,255,0.5)",
-                            fontSize: "13px",
-                            marginBottom: "20px"
-                        }}>Vaqt: {date} | {startTime} - {endTime}</p>
-                        <div style={{
-                            padding: "12px",
-                            background: "rgba(239,68,68,0.1)",
-                            border: "1px solid rgba(239,68,68,0.2)",
-                            borderRadius: "8px",
-                            color: "#ef4444",
-                            textAlign: "center",
-                            fontWeight: 700,
-                            marginBottom: "20px"
-                        }}>
-                            Vaqt qoldi: {String(mins).padStart(2, "0")}:{String(secs).padStart(2, "0")}
-                        </div>
-                        <div style={{
-                            display: "grid",
-                            gridTemplateColumns: "1fr 1fr",
-                            gap: "10px",
-                            marginBottom: "16px",
-                        }}>
-                            <button
-                                onClick={() => setMethod("click")}
-                                style={{
-                                    padding: "12px",
-                                    borderRadius: "10px",
-                                    border: method === "click" ? "2px solid #39FF14" : "1px solid rgba(255,255,255,0.12)",
-                                    background: method === "click" ? "rgba(57,255,20,0.1)" : "rgba(255,255,255,0.03)",
-                                    color: "#fff",
-                                    fontWeight: 700,
-                                    fontSize: "13px",
-                                    cursor: "pointer",
-                                }}
-                            >
-                                💳 Click
-                            </button>
-                            <button
-                                onClick={() => setMethod("payme")}
-                                style={{
-                                    padding: "12px",
-                                    borderRadius: "10px",
-                                    border: method === "payme" ? "2px solid #39FF14" : "1px solid rgba(255,255,255,0.12)",
-                                    background: method === "payme" ? "rgba(57,255,20,0.1)" : "rgba(255,255,255,0.03)",
-                                    color: "#fff",
-                                    fontWeight: 700,
-                                    fontSize: "13px",
-                                    cursor: "pointer",
-                                }}
-                            >
-                                📱 Payme
-                            </button>
-                        </div>
-                        {payError && (
-                            <div style={{
-                                padding: "10px 12px",
-                                background: "rgba(239,68,68,0.1)",
-                                border: "1px solid rgba(239,68,68,0.25)",
-                                borderRadius: "8px",
-                                color: "#f87171",
-                                fontSize: "12.5px",
-                                marginBottom: "14px",
-                            }}>
-                                {payError}
-                            </div>
-                        )}
-                        <button onClick={handlePay} disabled={paying || !method} style={{
-                            width: "100%",
-                            padding: "14px",
-                            borderRadius: "12px",
-                            border: "none",
-                            background: !method ? "rgba(255,255,255,0.08)" : "linear-gradient(135deg,#39FF14,#00D26A)",
-                            color: "#fff",
-                            fontWeight: 800,
-                            cursor: !method || paying ? "not-allowed" : "pointer",
-                            opacity: paying ? 0.7 : 1,
-                        }}>
-                            {paying ? "To'lanmoqda..." : `${price.toLocaleString()} so'm to'lash`}
-                        </button>
-                    </>
-                )}
-                {paid && <div
-                    style={{color: "#39FF14", fontWeight: 800, textAlign: "center", fontSize: "18px"}}>Muvaffaqiyatli
-                    to'landi!</div>}
-            </div>
-        </div>
-    );
-}
 
 // ── MAIN PAGE ──
 interface PageProps {
@@ -440,7 +318,27 @@ export default function VenueDetailPage(props: PageProps) {
     );
 
     const price = Number(venue.price);
-    const currentSportName = venue?.sport_name || venue?.sport_name || "";
+    const currentSportName = venue?.sport_name || (typeof venue?.sport === "object" ? (venue.sport as any)?.name : "") || venue?.name || "";
+
+    let currentSelectedPrice = price;
+    let selectedStart = "";
+    let selectedEnd = "";
+
+    const activeDateIso = dates[activeDate]?.iso;
+
+
+    if (!customMode && activeSlot !== null && slots[activeSlot]) {
+        const slotStartStr = slots[activeSlot];
+        const startH = parseInt(slotStartStr.split(":")[0]);
+        selectedStart = `${slotStartStr}:00`;
+        selectedEnd = `${String(startH + 1).padStart(2, "0")}:00:00`;
+        currentSelectedPrice = calculateRangePrice(price, slotStartStr, `${String(startH + 1).padStart(2, "0")}:00`, activeDateIso, currentSportName);
+    } else if (customMode && customStart && customEnd) {
+        selectedStart = customStart;
+        selectedEnd = customEnd;
+        currentSelectedPrice = calculateRangePrice(price, customStart, customEnd, activeDateIso, currentSportName);
+    }
+
 
     return (
         <main style={{background: "#050505", minHeight: "100vh", color: "#fff"}}>
@@ -452,106 +350,172 @@ export default function VenueDetailPage(props: PageProps) {
                 borderBottom: "1px solid rgba(255,255,255,0.06)"
             }}>
                 <div style={{maxWidth: "1440px", margin: "0 auto"}}>
-                    <button onClick={() => router.back()} style={{
-                        background: "none",
-                        border: "none",
-                        color: "rgba(255,255,255,0.4)",
+                    <div style={{
                         fontSize: "13px",
-                        cursor: "pointer"
-                    }}>← Orqaga
-                    </button>
+                        color: "rgba(255,255,255,0.4)",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px"
+                    }}>
+                        <span style={{cursor: "pointer", color: "#39FF14"}}
+                              onClick={() => router.push("/")}>Bosh sahifa</span>
+                        <span>/</span>
+                        <span style={{cursor: "pointer", color: "#39FF14"}}
+                              onClick={() => router.push("/venues")}>Maydonlar</span>
+                        <span>/</span>
+                        <span>{venue.name}</span>
+                    </div>
                 </div>
             </div>
 
-            <section style={{padding: "32px 32px 64px", maxWidth: "1440px", margin: "0 auto"}}>
-                <div style={{display: "grid", gridTemplateColumns: "1fr 420px", gap: "32px", alignItems: "start"}}>
-
+            <section style={{maxWidth: "1440px", margin: "0 auto", padding: "32px 32px 64px"}}>
+                <div style={{display: "grid", gridTemplateColumns: "1fr 380px", gap: "32px"}}>
                     <motion.div initial={{opacity: 0, y: 16}} animate={{opacity: 1, y: 0}} transition={{duration: 0.5}}>
-                        <div style={{borderRadius: "20px", overflow: "hidden", marginBottom: "10px"}}>
+                        <div style={{
+                            position: "relative",
+                            height: "420px",
+                            borderRadius: "20px",
+                            overflow: "hidden",
+                            border: "1px solid rgba(255,255,255,0.08)",
+                            marginBottom: "12px",
+                        }}>
+                            {venue.images && venue.images.length > 0 ? (
+                                <img
+                                    src={venue.images[activeImage]?.image || venue.images[0]?.image}
+                                    alt={venue.name}
+                                    style={{width: "100%", height: "100%", objectFit: "cover"}}
+                                />
+                            ) : (
+                                <div style={{
+                                    width: "100%",
+                                    height: "100%",
+                                    background: "linear-gradient(135deg,#0d3b1e,#052010)",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center"
+                                }}>
+                                    <SportIcon sportName={currentSportName} className="w-24 h-24 text-white/20"/>
+                                </div>
+                            )}
+
+                            {/* Bir nechta rasm bo'lsa — oldinga/orqaga strelkalar va hisoblagich (pagination) */}
+                            {venue.images && venue.images.length > 1 && (
+                                <>
+                                    <button
+                                        onClick={() => setActiveImage((prev) => (prev - 1 + venue.images.length) % venue.images.length)}
+                                        aria-label="Oldingi rasm"
+                                        style={{
+                                            position: "absolute",
+                                            left: "14px",
+                                            top: "50%",
+                                            transform: "translateY(-50%)",
+                                            width: "36px",
+                                            height: "36px",
+                                            borderRadius: "50%",
+                                            background: "rgba(0,0,0,0.55)",
+                                            border: "1px solid rgba(255,255,255,0.15)",
+                                            color: "#fff",
+                                            fontSize: "16px",
+                                            fontWeight: 700,
+                                            cursor: "pointer",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            backdropFilter: "blur(4px)",
+                                            transition: "background .15s",
+                                        }}
+                                    >
+                                        ‹
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveImage((prev) => (prev + 1) % venue.images.length)}
+                                        aria-label="Keyingi rasm"
+                                        style={{
+                                            position: "absolute",
+                                            right: "14px",
+                                            top: "50%",
+                                            transform: "translateY(-50%)",
+                                            width: "36px",
+                                            height: "36px",
+                                            borderRadius: "50%",
+                                            background: "rgba(0,0,0,0.55)",
+                                            border: "1px solid rgba(255,255,255,0.15)",
+                                            color: "#fff",
+                                            fontSize: "16px",
+                                            fontWeight: 700,
+                                            cursor: "pointer",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            backdropFilter: "blur(4px)",
+                                            transition: "background .15s",
+                                        }}
+                                    >
+                                        ›
+                                    </button>
+
+                                    {/* "2 / 4" hisoblagich */}
+                                    <div style={{
+                                        position: "absolute", bottom: "12px", right: "14px",
+                                        background: "rgba(0,0,0,0.6)", border: "1px solid rgba(255,255,255,0.15)",
+                                        color: "#fff", fontSize: "12px", fontWeight: 700,
+                                        padding: "4px 10px", borderRadius: "999px", backdropFilter: "blur(4px)",
+                                    }}>
+                                        {activeImage + 1} / {venue.images.length}
+                                    </div>
+
+                                    {/* Nuqtali indikator */}
+                                    <div style={{
+                                        position: "absolute",
+                                        bottom: "12px",
+                                        left: "50%",
+                                        transform: "translateX(-50%)",
+                                        display: "flex",
+                                        gap: "6px",
+                                    }}>
+                                        {venue.images.map((_, dotIdx) => (
+                                            <button
+                                                key={dotIdx}
+                                                onClick={() => setActiveImage(dotIdx)}
+                                                aria-label={`${dotIdx + 1}-rasm`}
+                                                style={{
+                                                    width: dotIdx === activeImage ? "18px" : "6px", height: "6px",
+                                                    borderRadius: "999px", padding: 0, border: "none",
+                                                    background: dotIdx === activeImage ? "#39FF14" : "rgba(255,255,255,0.4)",
+                                                    cursor: "pointer", transition: "all .2s ease",
+                                                }}
+                                            />
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+
                             <div style={{
-                                position: "relative",
-                                height: "380px",
-                                background: "#0E1117",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center"
+                                position: "absolute",
+                                top: "16px",
+                                left: "16px",
+                                background: "rgba(0,0,0,0.6)",
+                                backdropFilter: "blur(8px)",
+                                padding: "6px 14px",
+                                borderRadius: "20px",
+                                fontSize: "12px",
+                                fontWeight: 700,
+                                color: "#39FF14",
+                                border: "1px solid rgba(57,255,20,0.3)",
                             }}>
-                                {venue.images?.length > 0 ? (
-                                    <img src={venue.images[activeImage]?.image || venue.images[0]?.image} alt={venue.name}
-                                         style={{width: "100%", height: "100%", objectFit: "cover"}}/>
-                                ) : (
-                                    <SportIcon sportName={currentSportName} className="w-24 h-24 text-white"/>
-                                )}
-
-                                {/* Bir nechta rasm bo'lsa — oldinga/orqaga strelkalar va hisoblagich (pagination) */}
-                                {venue.images && venue.images.length > 1 && (
-                                    <>
-                                        <button
-                                            onClick={() => setActiveImage((prev) => (prev - 1 + venue.images.length) % venue.images.length)}
-                                            aria-label="Oldingi rasm"
-                                            style={{
-                                                position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)",
-                                                width: "36px", height: "36px", borderRadius: "50%",
-                                                background: "rgba(0,0,0,0.55)", border: "1px solid rgba(255,255,255,0.15)",
-                                                color: "#fff", fontSize: "16px", fontWeight: 700, cursor: "pointer",
-                                                display: "flex", alignItems: "center", justifyContent: "center",
-                                                backdropFilter: "blur(4px)", transition: "background .15s",
-                                            }}
-                                        >
-                                            ‹
-                                        </button>
-                                        <button
-                                            onClick={() => setActiveImage((prev) => (prev + 1) % venue.images.length)}
-                                            aria-label="Keyingi rasm"
-                                            style={{
-                                                position: "absolute", right: "14px", top: "50%", transform: "translateY(-50%)",
-                                                width: "36px", height: "36px", borderRadius: "50%",
-                                                background: "rgba(0,0,0,0.55)", border: "1px solid rgba(255,255,255,0.15)",
-                                                color: "#fff", fontSize: "16px", fontWeight: 700, cursor: "pointer",
-                                                display: "flex", alignItems: "center", justifyContent: "center",
-                                                backdropFilter: "blur(4px)", transition: "background .15s",
-                                            }}
-                                        >
-                                            ›
-                                        </button>
-
-                                        {/* "2 / 4" hisoblagich */}
-                                        <div style={{
-                                            position: "absolute", bottom: "12px", right: "14px",
-                                            background: "rgba(0,0,0,0.6)", border: "1px solid rgba(255,255,255,0.15)",
-                                            color: "#fff", fontSize: "12px", fontWeight: 700,
-                                            padding: "4px 10px", borderRadius: "999px", backdropFilter: "blur(4px)",
-                                        }}>
-                                            {activeImage + 1} / {venue.images.length}
-                                        </div>
-
-                                        {/* Nuqtali indikator */}
-                                        <div style={{
-                                            position: "absolute", bottom: "12px", left: "50%", transform: "translateX(-50%)",
-                                            display: "flex", gap: "6px",
-                                        }}>
-                                            {venue.images.map((_, dotIdx) => (
-                                                <button
-                                                    key={dotIdx}
-                                                    onClick={() => setActiveImage(dotIdx)}
-                                                    aria-label={`${dotIdx + 1}-rasm`}
-                                                    style={{
-                                                        width: dotIdx === activeImage ? "18px" : "6px", height: "6px",
-                                                        borderRadius: "999px", padding: 0, border: "none",
-                                                        background: dotIdx === activeImage ? "#39FF14" : "rgba(255,255,255,0.4)",
-                                                        cursor: "pointer", transition: "all .2s ease",
-                                                    }}
-                                                />
-                                            ))}
-                                        </div>
-                                    </>
-                                )}
+                                {currentSportName || "Sport"}
                             </div>
                         </div>
 
                         {/* Thumbnail gallery — faqat bir nechta rasm bo'lsa (real bazadagi rasmlar) */}
                         {venue.images && venue.images.length > 1 && (
-                            <div style={{display: "flex", gap: "8px", marginBottom: "20px", overflowX: "auto", paddingBottom: "4px"}}>
+                            <div style={{
+                                display: "flex",
+                                gap: "8px",
+                                marginBottom: "20px",
+                                overflowX: "auto",
+                                paddingBottom: "4px"
+                            }}>
                                 {venue.images.map((img, idx) => (
                                     <button key={img.id ?? idx} onClick={() => setActiveImage(idx)} style={{
                                         flexShrink: 0,
@@ -565,7 +529,8 @@ export default function VenueDetailPage(props: PageProps) {
                                         opacity: activeImage === idx ? 1 : 0.55,
                                         transition: "all .15s",
                                     }}>
-                                        <img src={img.image} alt="" style={{width: "100%", height: "100%", objectFit: "cover"}}/>
+                                        <img src={img.image} alt=""
+                                             style={{width: "100%", height: "100%", objectFit: "cover"}}/>
                                     </button>
                                 ))}
                             </div>
@@ -610,20 +575,52 @@ export default function VenueDetailPage(props: PageProps) {
                         </div>
                     </motion.div>
 
-                    <motion.div initial={{opacity: 0, y: 16}} animate={{opacity: 1, y: 0}} transition={{duration: 0.5, delay: 0.1}} style={{
+                    <motion.div initial={{opacity: 0, y: 16}} animate={{opacity: 1, y: 0}}
+                                transition={{duration: 0.5, delay: 0.1}} style={{
                         background: "rgba(255,255,255,0.02)",
                         border: "1px solid rgba(255,255,255,0.06)",
                         borderRadius: "18px",
                         padding: "24px"
                     }}>
-                        <h3 style={{
-                            fontSize: "22px",
-                            fontWeight: 800,
-                            color: "#39FF14",
-                            marginBottom: "20px"
-                        }}>{price.toLocaleString()} so'm <span
-                            style={{fontSize: "13px", color: "rgba(255,255,255,0.4)", fontWeight: 400}}>/ soat</span>
-                        </h3>
+                        <div style={{marginBottom: "20px"}}>
+                            {currentSelectedPrice < price ? (
+                                <div>
+                                    <div style={{
+                                        fontSize: "12px",
+                                        color: "#FF3B30",
+                                        fontWeight: 700,
+                                        marginBottom: "4px"
+                                    }}>
+                                        🔥 20:00 dan keyingi vaqt uchun 20% Chegirma!
+                                    </div>
+                                    <div style={{display: "flex", alignItems: "baseline", gap: "10px"}}>
+                                        <span style={{
+                                            fontSize: "15px",
+                                            color: "rgba(255,255,255,0.4)",
+                                            textDecoration: "line-through"
+                                        }}>
+                                            {price.toLocaleString()} so'm
+                                        </span>
+                                        <span style={{fontSize: "24px", fontWeight: 800, color: "#39FF14"}}>
+                                            {currentSelectedPrice.toLocaleString()} so'm
+                                        </span>
+                                    </div>
+                                </div>
+                            ) : (
+                                <h3 style={{
+                                    fontSize: "22px",
+                                    fontWeight: 800,
+                                    color: "#39FF14",
+                                    marginBottom: "0"
+                                }}>
+                                    {price.toLocaleString()} so'm <span style={{
+                                    fontSize: "13px",
+                                    color: "rgba(255,255,255,0.4)",
+                                    fontWeight: 400
+                                }}>/ soat</span>
+                                </h3>
+                            )}
+                        </div>
 
                         <label style={{
                             fontSize: "12px",
@@ -698,19 +695,42 @@ export default function VenueDetailPage(props: PageProps) {
                                 }}>Mavjud soatlar:</label>
                                 <div style={{
                                     display: "grid",
-                                    gridTemplateColumns: "repeat(2, 1fr)",
+                                    gridTemplateColumns: "repeat(1, 1fr)",
                                     gap: "8px",
-                                    maxHeight: "200px",
+                                    maxHeight: "220px",
                                     overflowY: "auto",
                                     marginBottom: "24px"
                                 }}>
                                     {slots.map((slot, idx) => {
                                         const booked = isBooked(slot) || isPastToday(slot);
                                         const selected = activeSlot === idx;
+                                        const hour = parseInt(slot.split(":")[0]);
+                                        
+                                        let isWeekendSlot = false;
+                                        if (dates[activeDate]?.iso) {
+                                            const parts = dates[activeDate].iso.split("-").map(Number);
+                                            if (parts.length === 3) {
+                                                const d = new Date(parts[0], parts[1] - 1, parts[2]);
+                                                isWeekendSlot = d.getDay() === 0 || d.getDay() === 6;
+                                            }
+                                        }
+                                        const sportNameLower = (currentSportName || "").toLowerCase();
+                                        const isBilyardSlot = sportNameLower.includes("bilyard") || sportNameLower.includes("billiard");
+
+                                        const isBilyardWeekend = isBilyardSlot && isWeekendSlot;
+                                        const hasDiscount = !isBilyardWeekend && hour >= 20;
+
+                                        let slotPrice = price;
+                                        if (isBilyardWeekend) {
+                                            slotPrice = Math.round(price * 1.25);
+                                        } else if (hasDiscount) {
+                                            slotPrice = Math.round(price * 0.8);
+                                        }
+
                                         return (
                                             <button key={idx} disabled={booked} onClick={() => setActiveSlot(idx)}
                                                     style={{
-                                                        padding: "10px",
+                                                        padding: "10px 12px",
                                                         borderRadius: "8px",
                                                         border: `1px solid ${selected ? "#39FF14" : "rgba(255,255,255,0.06)"}`,
                                                         background: booked ? "rgba(255,0,0,0.05)" : selected ? "rgba(57,255,20,0.2)" : "rgba(255,255,255,0.02)",
@@ -718,9 +738,39 @@ export default function VenueDetailPage(props: PageProps) {
                                                         textDecoration: booked ? "line-through" : "none",
                                                         cursor: booked ? "not-allowed" : "pointer",
                                                         fontSize: "12.5px",
-                                                        fontWeight: 600
+                                                        fontWeight: 600,
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        justifyContent: "space-between"
                                                     }}>
-                                                {slotRangeLabel(slot)}
+                                                <span>{slotRangeLabel(slot)}</span>
+                                                {isBilyardWeekend ? (
+                                                    <span style={{
+                                                        fontSize: "10px",
+                                                        background: "rgba(255,149,0,0.2)",
+                                                        color: "#FF9500",
+                                                        padding: "2px 6px",
+                                                        borderRadius: "6px",
+                                                        fontWeight: 700
+                                                    }}>
+                                                        ⚡ +25% ({slotPrice.toLocaleString()} so'm)
+                                                    </span>
+                                                ) : hasDiscount ? (
+                                                    <span style={{
+                                                        fontSize: "10px",
+                                                        background: "rgba(255,59,48,0.2)",
+                                                        color: "#FF3B30",
+                                                        padding: "2px 6px",
+                                                        borderRadius: "6px",
+                                                        fontWeight: 700
+                                                    }}>
+                                                        🔥 -20% ({slotPrice.toLocaleString()} so'm)
+                                                    </span>
+                                                ) : (
+                                                    <span style={{fontSize: "10.5px", color: "rgba(255,255,255,0.4)"}}>
+                                                        {slotPrice.toLocaleString()} so'm
+                                                    </span>
+                                                )}
                                             </button>
                                         );
                                     })}
@@ -798,10 +848,9 @@ export default function VenueDetailPage(props: PageProps) {
 
             {showPayment && bookingId && (
                 <PaymentModal
-                    venue={venue} bookingId={bookingId}
-                    startTime={customMode ? customStart : slots[activeSlot || 0]}
-                    endTime={customMode ? customEnd : `${String(parseInt((slots[activeSlot || 0]).split(":")[0]) + 1).padStart(2, "0")}:00`}
-                    date={dates[activeDate].date} price={price}
+                    bookingId={bookingId}
+                    isOpen={showPayment}
+                    customPrice={currentSelectedPrice}
                     onSuccess={() => router.push("/bookings")}
                     onClose={() => setShowPayment(false)}
                 />

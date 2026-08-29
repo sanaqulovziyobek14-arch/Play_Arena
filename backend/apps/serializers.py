@@ -1,26 +1,56 @@
-from datetime import datetime
+from datetime import datetime, date, time
 from decimal import Decimal
+from os import name
+
 from django.utils import timezone
 
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Avg
 from rest_framework.exceptions import ValidationError
-from rest_framework.fields import IntegerField, CharField, DecimalField, SerializerMethodField, ImageField, \
-    ListField
+from rest_framework.fields import (
+    IntegerField,
+    CharField,
+    DecimalField,
+    SerializerMethodField,
+    ImageField,
+    ListField,
+)
 from rest_framework.serializers import ModelSerializer
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
-from apps.models import Booking, Favorite, Payment, Review, SportType, Venue, VenueImage, UserCard
+from apps.models import (
+    Booking,
+    Favorite,
+    Payment,
+    Review,
+    SportType,
+    Venue,
+    VenueImage,
+    UserCard,
+)
 
 User = get_user_model()
 
 
 class UserModelSerializer(ModelSerializer):
-    password = CharField(write_only=True, required=False, style={'input_type': 'password'})
+    password = CharField(
+        write_only=True, required=False, style={"input_type": "password"}
+    )
+
     class Meta:
         model = User
-        fields = ("id", "username", "password", "email", "phone", "first_name", "last_name", "role", "image")
+        fields = (
+            "id",
+            "username",
+            "password",
+            "email",
+            "phone",
+            "first_name",
+            "last_name",
+            "role",
+            "image",
+        )
         read_only_fields = ("role",)
         extra_kwargs = {
             "email": {"required": False},
@@ -76,29 +106,44 @@ class VenueImageModelSerializer(ModelSerializer):
 class VenueCreateSerializer(ModelSerializer):
     uploaded_images = ListField(
         child=ImageField(max_length=1000000, allow_empty_file=False, use_url=False),
-        write_only=True
+        write_only=True,
     )
 
     class Meta:
         model = Venue
         fields = [
-            'sport', 'name', 'address', 'latitude', 'longitude',
-            'width', 'length', 'price', 'description', 'start_time',
-            'end_time', 'has_wifi', 'has_parking', 'uploaded_images'
+            "sport",
+            "name",
+            "address",
+            "latitude",
+            "longitude",
+            "width",
+            "length",
+            "price",
+            "description",
+            "start_time",
+            "end_time",
+            "has_wifi",
+            "has_parking",
+            "uploaded_images",
         ]
 
     def validate_uploaded_images(self, value):
         if len(value) < 2:
-            raise ValidationError("Stadion saytga chiqishi uchun kamida 2 ta rasm yuklashingiz shart!")
+            raise ValidationError(
+                "Stadion saytga chiqishi uchun kamida 2 ta rasm yuklashingiz shart!"
+            )
         if len(value) > 10:
             raise ValidationError("Maksimum 10 tagacha rasm yuklash imkoniyati mavjud.")
         return value
 
     def create(self, validated_data):
-        images_data = validated_data.pop('uploaded_images')
-        user = self.context['request'].user
+        images_data = validated_data.pop("uploaded_images")
+        user = self.context["request"].user
         with transaction.atomic():
-            venue = Venue.objects.create(owner=user, status=Venue.Role.PENDING, **validated_data)
+            venue = Venue.objects.create(
+                owner=user, status=Venue.Role.PENDING, **validated_data
+            )
             venue_images = [
                 VenueImage(venue=venue, image=image_data) for image_data in images_data
             ]
@@ -106,37 +151,78 @@ class VenueCreateSerializer(ModelSerializer):
 
         return venue
 
+
 class VenueModelSerializer(ModelSerializer):
-    images = VenueImageModelSerializer(many=True,read_only=True)
+    images = VenueImageModelSerializer(many=True, read_only=True)
+    sport_name = SerializerMethodField()
     today_booked_hours = SerializerMethodField()
     weekly_booking_count = SerializerMethodField()
     rating = SerializerMethodField()
     review_count = SerializerMethodField()
+    discount_start_time = SerializerMethodField()
+    discount_percent = SerializerMethodField()
 
     class Meta:
         model = Venue
         fields = [
-            'id', 'owner', 'sport', 'name', 'address', 'latitude', 'longitude',
-            'width', 'length', 'price', 'description', 'start_time', 'end_time','status',
-            'has_wifi', 'has_parking', 'created_at', 'images','has_shower', 'has_lighting', 'has_dressing_room', 'has_equipment_rental',
-            'today_booked_hours', 'weekly_booking_count', 'rating', 'review_count'
+            "id",
+            "owner",
+            "sport",
+            "sport_name",
+            "name",
+            "address",
+            "latitude",
+            "longitude",
+            "width",
+            "length",
+            "price",
+            "description",
+            "start_time",
+            "end_time",
+            "status",
+            "has_wifi",
+            "has_parking",
+            "created_at",
+            "images",
+            "has_shower",
+            "has_lighting",
+            "has_dressing_room",
+            "has_equipment_rental",
+            "today_booked_hours",
+            "weekly_booking_count",
+            "rating",
+            "review_count",
+            "discount_start_time",
+            "discount_percent",
         ]
+
+    def get_sport_name(self, obj):
+        return obj.sport.name if obj.sport else ""
+
+
+    def get_discount_start_time(self, obj):
+        return "20:00"
+
+    def get_discount_percent(self, obj):
+        return 20
 
     def get_today_booked_hours(self, obj):
         try:
-            try:
-                today = timezone.now().date()
-            except Exception:
-                today = datetime.now().date()
-            bookings_relation = getattr(obj, 'bookings', None) or getattr(obj, 'bronlar', None)
+            today = timezone.now().date()
+            bookings_relation = getattr(obj, "bookings", None) or getattr(
+                obj, "bronlar", None
+            )
             if bookings_relation is None:
                 return []
             today_bookings = bookings_relation.filter(date=today)
             booked_hours = []
             for booking in today_bookings:
-                if hasattr(booking, 'start_time'):
-                    time_str = booking.start_time.strftime('%H:%M') if hasattr(booking.start_time, 'strftime') else str(
-                        booking.start_time)
+                if hasattr(booking, "start_time"):
+                    time_str = (
+                        booking.start_time.strftime("%H:%M")
+                        if hasattr(booking.start_time, "strftime")
+                        else str(booking.start_time)
+                    )
                     booked_hours.append(time_str)
             return booked_hours
 
@@ -146,11 +232,10 @@ class VenueModelSerializer(ModelSerializer):
 
     def get_weekly_booking_count(self, obj):
         try:
-            try:
-                today = timezone.now().date()
-            except Exception:
-                today = datetime.now().date()
-            bookings_relation = getattr(obj, 'bookings', None) or getattr(obj, 'bronlar', None)
+            today = timezone.now().date()
+            bookings_relation = getattr(obj, "bookings", None) or getattr(
+                obj, "bronlar", None
+            )
             if bookings_relation is None:
                 return 0
             start_date = today - timezone.timedelta(days=7)
@@ -161,57 +246,131 @@ class VenueModelSerializer(ModelSerializer):
 
     def get_rating(self, obj):
         """Maydonning o'rtacha reytingi"""
-        if hasattr(obj, 'rating') and obj.rating is not None:
+        if hasattr(obj, "rating") and obj.rating is not None:
             return round(obj.rating, 1)
-        avg_rating = obj.reviews.aggregate(Avg('rating'))['rating__avg']
+        avg_rating = obj.reviews.aggregate(Avg("rating"))["rating__avg"]
         return round(avg_rating, 1) if avg_rating else 0.0
 
     def get_review_count(self, obj):
         """Izohlar soni"""
-        if hasattr(obj, 'review_count'):
+        if hasattr(obj, "review_count"):
             return obj.review_count
         return obj.reviews.count()
 
+
+def calculate_booking_price(venue, booking_date, start_t: time, end_t: time) -> Decimal:
+    """
+    1. Bilyard uchun Shanba (5) va Yakshanba (6) kunlari 25% narx oshiriladi (base_price * 1.25).
+       Ushbu kunlarda Bilyardga 20:00 dan keyingi 20% chegirma QO'LLANILMAYDI.
+    2. Barcha boshqa holatlarda soat 20:00 dan keyin 20% chegirma beriladi.
+    """
+    base_price = Decimal(str(venue.price))
+    sport_name = getattr(venue.sport, "name", "").lower() if hasattr(venue, "sport") and venue.sport else ""
+    is_bilyard = "bilyard" in sport_name or "billiard" in sport_name
+
+    is_weekend = False
+    if booking_date:
+        if isinstance(booking_date, str):
+            try:
+                booking_date = datetime.strptime(booking_date, "%Y-%m-%d").date()
+            except Exception:
+                pass
+        if hasattr(booking_date, "weekday") and booking_date.weekday() in (5, 6):
+            is_weekend = True
+
+    start_dt = datetime.combine(date.min, start_t)
+    end_dt = datetime.combine(date.min, end_t)
+    if end_dt <= start_dt:
+        end_dt = datetime.combine(date.min + timezone.timedelta(days=1), end_t)
+
+    # 1-HOLAT: Bilyard va Shanba/Yakshanba -> 25% narx oshadi va 20:00 chegirmasi TA'SIR QILMAYDI
+    if is_bilyard and is_weekend:
+        weekend_price = base_price * Decimal("1.25")
+        duration_hours = Decimal(str((end_dt - start_dt).total_seconds())) / Decimal("3600")
+        total = duration_hours * weekend_price
+        return Decimal(str(round(total, 2)))
+
+    # 2-HOLAT: Barcha boshqa holatlar -> 20:00 dan keyin 20% chegirma Hisoblanadi
+    discount_boundary = datetime.combine(date.min, time(20, 0))
+
+    std_sec = max(
+        0,
+        (
+            min(end_dt, discount_boundary) - min(start_dt, discount_boundary)
+        ).total_seconds(),
+    )
+    disc_sec = max(
+        0,
+        (
+            max(end_dt, discount_boundary) - max(start_dt, discount_boundary)
+        ).total_seconds(),
+    )
+
+    std_hours = Decimal(str(std_sec)) / Decimal("3600")
+    disc_hours = Decimal(str(disc_sec)) / Decimal("3600")
+
+    total = (std_hours * base_price) + (disc_hours * base_price * Decimal("0.8"))
+    return Decimal(str(round(total, 2)))
+
+
+
 class BookingModelSerializer(ModelSerializer):
-    venue_name    = CharField(source="venue.name",    read_only=True)
+    venue_name = CharField(source="venue.name", read_only=True)
     venue_address = CharField(source="venue.address", read_only=True)
-    venue_price   = DecimalField(source="venue.price", max_digits=10, decimal_places=2, read_only=True)
-    total_price   = SerializerMethodField()
+    venue_price = DecimalField(
+        source="venue.price", max_digits=10, decimal_places=2, read_only=True
+    )
+    total_price = SerializerMethodField()
 
     class Meta:
         model = Booking
         fields = (
-            "id", "user", "venue", "venue_name", "venue_address", "venue_price",
-            "date", "start_time", "end_time", "total_price", "payment_type", 
-            "paid_amount", "remaining_amount", "status", "created_at"
+            "id",
+            "user",
+            "venue",
+            "venue_name",
+            "venue_address",
+            "venue_price",
+            "date",
+            "start_time",
+            "end_time",
+            "total_price",
+            "payment_type",
+            "paid_amount",
+            "remaining_amount",
+            "status",
+            "created_at",
         )
-        read_only_fields = ("user", "status", "created_at", "paid_amount", "remaining_amount")
+        read_only_fields = (
+            "user",
+            "status",
+            "created_at",
+            "paid_amount",
+            "remaining_amount",
+        )
 
     def get_total_price(self, obj) -> Decimal:
-        start_dt = datetime.datetime.combine(datetime.date.min, obj.start_time)
-        end_dt = datetime.datetime.combine(datetime.date.min, obj.end_time)
-        discount_boundary = datetime.datetime.combine(datetime.date.min, datetime.time(20, 0))
-        std_sec = max(0, (min(end_dt, discount_boundary) - min(start_dt, discount_boundary)).total_seconds())
-        disc_sec = max(0, (max(end_dt, discount_boundary) - max(start_dt, discount_boundary)).total_seconds())
-        std_hours = Decimal(std_sec) / Decimal(3600)
-        disc_hours = Decimal(disc_sec) / Decimal(3600)
-        total = (std_hours * obj.venue.price) + (disc_hours * obj.venue.price * Decimal("0.8"))
-        return round(total, 2)
-
+        return calculate_booking_price(obj.venue, obj.date, obj.start_time, obj.end_time)
 
     def validate(self, data):
         venue = data.get("venue")
-        date = data.get("date")
+        req_date = data.get("date")
         start_time = data.get("start_time")
         end_time = data.get("end_time")
+
         today = timezone.now().date()
         current_time = timezone.now().time()
-        if date < today:
+
+        if req_date < today:
             raise ValidationError("O'tib ketgan sanaga bron qilib bo'lmaydi.")
-        if date == today and start_time < current_time:
-            raise ValidationError("Bugungi kun uchun o'tib ketgan soatga bron qilib bo'lmaydi.")
+        if req_date == today and start_time < current_time:
+            raise ValidationError(
+                "Bugungi kun uchun o'tib ketgan soatga bron qilib bo'lmaydi."
+            )
         if start_time >= end_time:
-            raise ValidationError("Tugash vaqti boshlanish vaqtidan katta bo'lishi shart.")
+            raise ValidationError(
+                "Tugash vaqti boshlanish vaqtidan katta bo'lishi shart."
+            )
 
         if start_time < venue.start_time or end_time > venue.end_time:
             raise ValidationError(
@@ -219,11 +378,49 @@ class BookingModelSerializer(ModelSerializer):
             )
         return data
 
+    @transaction.atomic
+    def create(self, validated_data):
+        user = validated_data.pop("user", None)
+        if not user and "request" in self.context:
+            user = self.context["request"].user
+
+        venue = validated_data["venue"]
+        req_date = validated_data["date"]
+        start_time = validated_data["start_time"]
+        end_time = validated_data["end_time"]
+        payment_type = validated_data.get("payment_type", "full")
+
+        calculated_total = calculate_booking_price(venue, req_date, start_time, end_time)
+
+        if payment_type == "deposit_50":
+            paid_amount = Decimal(str(round(calculated_total / Decimal("2"), 2)))
+            remaining_amount = calculated_total - paid_amount
+        else:
+            paid_amount = calculated_total
+            remaining_amount = Decimal("0.00")
+
+        booking = Booking.objects.create(
+            user=user,
+            paid_amount=paid_amount,
+            remaining_amount=remaining_amount,
+            **validated_data,
+        )
+        return booking
+
+
 
 class UserCardModelSerializer(ModelSerializer):
     class Meta:
         model = UserCard
-        fields = ("id", "card_holder", "card_masked", "expire_month", "expire_year", "provider", "is_default")
+        fields = (
+            "id",
+            "card_holder",
+            "card_masked",
+            "expire_month",
+            "expire_year",
+            "provider",
+            "is_default",
+        )
 
 
 class AddUserCardSerializer(ModelSerializer):
@@ -231,20 +428,35 @@ class AddUserCardSerializer(ModelSerializer):
 
     class Meta:
         model = UserCard
-        fields = ("id", "card_number", "card_holder", "expire_month", "expire_year", "provider", "is_default")
+        fields = (
+            "id",
+            "card_number",
+            "card_holder",
+            "expire_month",
+            "expire_year",
+            "provider",
+            "is_default",
+        )
 
     def validate_card_number(self, value):
         import re
-        clean_number = re.sub(r'\D', '', value)
+
+        clean_number = re.sub(r"\D", "", value)
         if len(clean_number) != 16:
             raise ValidationError("Karta raqami 16 ta raqamdan iborat bo'lishi kerak!")
-        if not (clean_number.startswith('8600') or clean_number.startswith('5614') or clean_number.startswith('9860')):
-            raise ValidationError("Faqat Uzcard (8600, 5614) va Humo (9860) kartalari qo'llab-quvvatlanadi!")
+        if not (
+            clean_number.startswith("8600")
+            or clean_number.startswith("5614")
+            or clean_number.startswith("9860")
+        ):
+            raise ValidationError(
+                "Faqat Uzcard (8600, 5614) va Humo (9860) kartalari qo'llab-quvvatlanadi!"
+            )
         return clean_number
 
     def create(self, validated_data):
-        user = self.context['request'].user
-        clean_number = validated_data.pop('card_number')
+        user = self.context["request"].user
+        clean_number = validated_data.pop("card_number")
         masked_number = f"{clean_number[:4]} **** **** {clean_number[-4:]}"
         simulated_token = f"tok_{clean_number[:6]}_{clean_number[-4:]}_{int(timezone.now().timestamp())}"
 
@@ -252,13 +464,13 @@ class AddUserCardSerializer(ModelSerializer):
             user=user,
             card_masked=masked_number,
             defaults={
-                'card_holder': validated_data['card_holder'].upper(),
-                'card_token': simulated_token,
-                'expire_month': validated_data['expire_month'],
-                'expire_year': validated_data['expire_year'],
-                'provider': validated_data.get('provider', UserCard.Provider.CLICK),
-                'is_default': not UserCard.objects.filter(user=user).exists()
-            }
+                "card_holder": validated_data["card_holder"].upper(),
+                "card_token": simulated_token,
+                "expire_month": validated_data["expire_month"],
+                "expire_year": validated_data["expire_year"],
+                "provider": validated_data.get("provider", UserCard.Provider.CLICK),
+                "is_default": not UserCard.objects.filter(user=user).exists(),
+            },
         )
         return card
 
@@ -266,6 +478,7 @@ class AddUserCardSerializer(ModelSerializer):
 class InitiatePaymentSerializer(ModelSerializer):
     booking_id = IntegerField(source="booking.id")
     payment_option = CharField(default="deposit_50")
+
     class Meta:
         model = Payment
         fields = ("booking_id", "payment_option")
@@ -276,7 +489,16 @@ class PaymentModelSerializer(ModelSerializer):
 
     class Meta:
         model = Payment
-        fields = ("id", "booking", "booking_id", "amount", "payment_method", "transaction_id", "status", "created_at")
+        fields = (
+            "id",
+            "booking",
+            "booking_id",
+            "amount",
+            "payment_method",
+            "transaction_id",
+            "status",
+            "created_at",
+        )
         read_only_fields = ("transaction_id", "created_at", "status")
 
     def validate_amount(self, value):
@@ -290,7 +512,15 @@ class ReviewModelSerializer(ModelSerializer):
 
     class Meta:
         model = Review
-        fields = ("id", "user", "user_username", "venue", "rating", "comment", "created_at")
+        fields = (
+            "id",
+            "user",
+            "user_username",
+            "venue",
+            "rating",
+            "comment",
+            "created_at",
+        )
         read_only_fields = ("user", "created_at")
 
     def validate_rating(self, value):
@@ -299,16 +529,18 @@ class ReviewModelSerializer(ModelSerializer):
         return value
 
     def validate(self, data):
-        request = self.context.get('request')
+        request = self.context.get("request")
         if not request:
             return data
-        user  = request.user
-        venue = data.get('venue')
+        user = request.user
+        venue = data.get("venue")
         has_booked = Booking.objects.filter(
             user=user, venue=venue, status__in=["paid", "pending"]
         ).exists()
         if not has_booked and not user.is_admin:
-            raise ValidationError("Sharh qoldirish uchun avval bu maydonni bron qilishingiz kerak.")
+            raise ValidationError(
+                "Sharh qoldirish uchun avval bu maydonni bron qilishingiz kerak."
+            )
         return data
 
 
@@ -321,9 +553,9 @@ class FavoriteModelSerializer(ModelSerializer):
         read_only_fields = ("user",)
 
     def validate(self, data):
-        request = self.context.get('request')
+        request = self.context.get("request")
         if not request:
             return data
-        if Favorite.objects.filter(user=request.user, venue=data.get('venue')).exists():
+        if Favorite.objects.filter(user=request.user, venue=data.get("venue")).exists():
             raise ValidationError("Bu maydon allaqachon sevimlilar ro'yxatida bor.")
         return data
