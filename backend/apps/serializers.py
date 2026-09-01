@@ -21,6 +21,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from apps.models import (
     Booking,
+    Discount,
     Favorite,
     Payment,
     Review,
@@ -161,6 +162,8 @@ class VenueModelSerializer(ModelSerializer):
     review_count = SerializerMethodField()
     discount_start_time = SerializerMethodField()
     discount_percent = SerializerMethodField()
+    active_discount = SerializerMethodField()
+    discounted_price = SerializerMethodField()
 
     class Meta:
         model = Venue
@@ -194,6 +197,8 @@ class VenueModelSerializer(ModelSerializer):
             "review_count",
             "discount_start_time",
             "discount_percent",
+            "active_discount",
+            "discounted_price",
         ]
 
     def get_sport_name(self, obj):
@@ -205,6 +210,45 @@ class VenueModelSerializer(ModelSerializer):
 
     def get_discount_percent(self, obj):
         return 20
+
+    def _get_active_admin_discount(self, obj):
+        """
+        Bitta so'rov ichida bir necha marta bazaga murojaat qilmaslik uchun
+        natijani obj ustida keshlab qo'yamiz (get_active_discount/get_discounted_price
+        ikkalasi ham shu metoddan foydalanadi).
+        """
+        if not hasattr(obj, "_active_admin_discount_cache"):
+            obj._active_admin_discount_cache = Discount.get_active_for_venue(obj)
+        return obj._active_admin_discount_cache
+
+    def get_active_discount(self, obj):
+        """
+        Admin panelidan qo'shilgan, hozirda amal qilayotgan chegirma/ustama haqida
+        ma'lumot. Mavjud bo'lmasa — null qaytadi.
+        """
+        discount = self._get_active_admin_discount(obj)
+        if not discount:
+            return None
+        return {
+            "id": discount.id,
+            "title": discount.title,
+            "type": discount.discount_type,          # "increase" | "decrease"
+            "percent": str(discount.percent),
+            "scope": discount.scope,                 # "all" | "sport" | "venue"
+            "start_date": discount.start_date,
+            "end_date": discount.end_date,
+        }
+
+    def get_discounted_price(self, obj):
+        """
+        Admin chegirmasi hisobga olingan holdagi yakuniy narx (bir soatlik standart narx).
+        Chegirma yo'q bo'lsa — standart narxning o'zi qaytadi.
+        """
+        discount = self._get_active_admin_discount(obj)
+        base_price = Decimal(str(obj.price))
+        if not discount:
+            return str(base_price)
+        return str(discount.apply_to_price(base_price))
 
     def get_today_booked_hours(self, obj):
         try:
@@ -260,23 +304,34 @@ class VenueModelSerializer(ModelSerializer):
 
 def calculate_booking_price(venue, booking_date, start_t: time, end_t: time) -> Decimal:
     """
+    0. Avval, admin panelidan (Chegirmalar bo'limidan) o'sha sanaga qo'yilgan
+       chegirma/ustama bo'lsa, u venue'ning standart narxiga qo'llanadi va
+       keyingi barcha hisob-kitoblar shu yangilangan narx asosida davom etadi.
     1. Bilyard uchun Shanba (5) va Yakshanba (6) kunlari 25% narx oshiriladi (base_price * 1.25).
        Ushbu kunlarda Bilyardga 20:00 dan keyingi 20% chegirma QO'LLANILMAYDI.
     2. Barcha boshqa holatlarda soat 20:00 dan keyin 20% chegirma beriladi.
     """
+    if booking_date and isinstance(booking_date, str):
+        try:
+            booking_date = datetime.strptime(booking_date, "%Y-%m-%d").date()
+        except Exception:
+            pass
+
     base_price = Decimal(str(venue.price))
+
+    # 0-HOLAT: Admin panelidan qo'yilgan chegirma/ustama (agar shu kunga amal qilsa)
+    active_discount = Discount.get_active_for_venue(
+        venue, on_date=booking_date if isinstance(booking_date, date) else None
+    )
+    if active_discount:
+        base_price = active_discount.apply_to_price(base_price)
+
     sport_name = getattr(venue.sport, "name", "").lower() if hasattr(venue, "sport") and venue.sport else ""
     is_bilyard = "bilyard" in sport_name or "billiard" in sport_name
 
     is_weekend = False
-    if booking_date:
-        if isinstance(booking_date, str):
-            try:
-                booking_date = datetime.strptime(booking_date, "%Y-%m-%d").date()
-            except Exception:
-                pass
-        if hasattr(booking_date, "weekday") and booking_date.weekday() in (5, 6):
-            is_weekend = True
+    if booking_date and hasattr(booking_date, "weekday") and booking_date.weekday() in (5, 6):
+        is_weekend = True
 
     start_dt = datetime.combine(date.min, start_t)
     end_dt = datetime.combine(date.min, end_t)

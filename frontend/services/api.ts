@@ -31,13 +31,23 @@ export interface VenueImage {
     image: string;
 }
 
+export interface ActiveDiscount {
+    id: number;
+    title: string;
+    type: "increase" | "decrease";
+    percent: string;          // "25.00"
+    scope: "all" | "sport" | "venue";
+    start_date: string;       // "2026-08-01"
+    end_date: string;         // "2026-08-31"
+}
+
 export interface Venue {
     id: number;
     name: string;
     address: string;
     latitude: number | null;
     longitude: number | null;
-    price: string;           // DecimalField → string
+    price: string;           // DecimalField → string (standart, chegirmasiz narx)
     description: string;
     start_time: string;      // "09:00:00"
     end_time: string;        // "23:00:00"
@@ -53,6 +63,10 @@ export interface Venue {
     status: "pending" | "approved" | "rejected";
     size?: string;
     surface_type?: string;
+    /** Admin panelidan (Chegirmalar bo'limidan) hozir amal qilayotgan chegirma/ustama, bo'lmasa null */
+    active_discount?: ActiveDiscount | null;
+    /** active_discount hisobga olingan holdagi bir soatlik yakuniy narx (string, masalan "70000.00") */
+    discounted_price?: string;
 }
 
 export interface Booking {

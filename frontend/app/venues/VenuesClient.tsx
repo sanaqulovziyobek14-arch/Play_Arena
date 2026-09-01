@@ -649,27 +649,52 @@ export default function VenuesClient() {
                                                                className="w-12 h-12 opacity-30"/>
                                                 )}
 
-                                                {/* Rating asosida — real ma'lumot, "Mashhur" belgisi */}
-                                                {rating >= 4.5 && (
-                                                    <span style={{
-                                                        position: "absolute",
-                                                        top: "10px",
-                                                        left: "10px",
-                                                        zIndex: 2,
-                                                        background: "rgba(0,0,0,0.65)",
-                                                        border: "1px solid rgba(251,191,36,0.4)",
-                                                        color: "#fbbf24",
-                                                        fontSize: "10px",
-                                                        fontWeight: 700,
-                                                        padding: "3px 9px",
-                                                        borderRadius: "6px",
-                                                        display: "flex",
-                                                        alignItems: "center",
-                                                        gap: "3px",
-                                                    }}>
-                                                        🔥 Mashhur
-                                                    </span>
-                                                )}
+                                                {/* Chap yuqori burchak: chegirma/ustama va "Mashhur" belgilari ustma-ust chiqmasligi uchun bitta ustunda */}
+                                                <div style={{
+                                                    position: "absolute",
+                                                    top: "10px",
+                                                    left: "10px",
+                                                    zIndex: 2,
+                                                    display: "flex",
+                                                    flexDirection: "column",
+                                                    gap: "6px",
+                                                    alignItems: "flex-start",
+                                                }}>
+                                                    {venue.active_discount && (
+                                                        <span style={{
+                                                            background: venue.active_discount.type === "increase"
+                                                                ? "rgba(239,68,68,0.85)"
+                                                                : "rgba(57,255,20,0.85)",
+                                                            color: venue.active_discount.type === "increase" ? "#fff" : "#052b04",
+                                                            fontSize: "10px",
+                                                            fontWeight: 800,
+                                                            padding: "3px 9px",
+                                                            borderRadius: "6px",
+                                                            boxShadow: "0 2px 8px rgba(0,0,0,0.35)",
+                                                        }}>
+                                                            {venue.active_discount.type === "increase" ? "🔺" : "🔥"}{" "}
+                                                            {venue.active_discount.type === "increase" ? "+" : "-"}
+                                                            {Number(venue.active_discount.percent)}%
+                                                        </span>
+                                                    )}
+                                                    {/* Rating asosida — real ma'lumot, "Mashhur" belgisi */}
+                                                    {rating >= 4.5 && (
+                                                        <span style={{
+                                                            background: "rgba(0,0,0,0.65)",
+                                                            border: "1px solid rgba(251,191,36,0.4)",
+                                                            color: "#fbbf24",
+                                                            fontSize: "10px",
+                                                            fontWeight: 700,
+                                                            padding: "3px 9px",
+                                                            borderRadius: "6px",
+                                                            display: "flex",
+                                                            alignItems: "center",
+                                                            gap: "3px",
+                                                        }}>
+                                                            🔥 Mashhur
+                                                        </span>
+                                                    )}
+                                                </div>
 
                                                 {/* Favorite button */}
                                                 <button onClick={e => toggleFav(venue.id, e)} style={{
@@ -750,12 +775,34 @@ export default function VenuesClient() {
                                                     alignItems: "center",
                                                     justifyContent: "space-between"
                                                 }}>
-                                                    <div style={{fontSize: "14px", fontWeight: 800, color: "#39FF14"}}>
-                                                        {Number(venue.price).toLocaleString()} <span style={{
-                                                        fontSize: "10px",
-                                                        color: "rgba(255,255,255,0.25)",
-                                                        fontWeight: 400
-                                                    }}>{"so'm/soat"}</span>
+                                                    <div>
+                                                        {venue.active_discount && Number(venue.discounted_price) !== Number(venue.price) ? (
+                                                            <div style={{display: "flex", alignItems: "baseline", gap: "6px"}}>
+                                                                <span style={{
+                                                                    fontSize: "10.5px",
+                                                                    color: "rgba(255,255,255,0.3)",
+                                                                    textDecoration: "line-through",
+                                                                }}>
+                                                                    {Number(venue.price).toLocaleString()}
+                                                                </span>
+                                                                <span style={{
+                                                                    fontSize: "14px",
+                                                                    fontWeight: 800,
+                                                                    color: venue.active_discount.type === "increase" ? "#f87171" : "#39FF14",
+                                                                }}>
+                                                                    {Number(venue.discounted_price).toLocaleString()}
+                                                                </span>
+                                                            </div>
+                                                        ) : (
+                                                            <div style={{fontSize: "14px", fontWeight: 800, color: "#39FF14"}}>
+                                                                {Number(venue.price).toLocaleString()}
+                                                            </div>
+                                                        )}
+                                                        <span style={{
+                                                            fontSize: "10px",
+                                                            color: "rgba(255,255,255,0.25)",
+                                                            fontWeight: 400
+                                                        }}>{"so'm/soat"}</span>
                                                     </div>
                                                     <span style={{
                                                         fontSize: "11px",

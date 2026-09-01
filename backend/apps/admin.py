@@ -1,8 +1,11 @@
 from django.contrib import admin
 from django.contrib.admin import ModelAdmin, TabularInline
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.utils import timezone
+from django.utils.html import format_html
 from apps.models import (
     Booking,
+    Discount,
     Favorite,
     Payment,
     Review,
@@ -76,6 +79,7 @@ class VenueAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'sport', 'address', 'price', 'start_time', 'end_time', 'size', 'status')
     list_display_links = ('id', 'name')
     list_filter = ('status', 'sport')
+    search_fields = ('name', 'address')
     actions = ['approve_venues', 'reject_venues']
     fieldsets = (
         ("Asosiy ma'lumotlar", {
@@ -114,6 +118,85 @@ class VenueImageAdmin(ModelAdmin):
         "venue",
     )
     search_fields = ("venue__name",)
+
+
+# =====================================================
+# DISCOUNT (Chegirmalar)
+
+@admin.register(Discount)
+class DiscountAdmin(ModelAdmin):
+    list_display = (
+        "id",
+        "title",
+        "scope_badge",
+        "target_display",
+        "type_badge",
+        "percent",
+        "start_date",
+        "end_date",
+        "status_badge",
+    )
+    list_display_links = ("id", "title")
+    list_filter = ("scope", "discount_type", "is_active", "sport")
+    search_fields = ("title", "venue__name", "sport__name")
+    ordering = ("-created_at",)
+    autocomplete_fields = ("venue",)
+
+    fieldsets = (
+        ("Asosiy ma'lumotlar", {
+            "fields": ("title", "is_active"),
+        }),
+        ("Qamrov — kimga tegishli bo'lishini tanlang", {
+            "fields": ("scope", "venue", "sport"),
+            "description": (
+                "• Barcha maydonlar uchun — venue va sportni bo'sh qoldiring.<br>"
+                "• Sport turi bo'yicha — faqat 'Sport turi' maydonini tanlang (masalan: Futbol).<br>"
+                "• Bitta maydon uchun — faqat 'Maydon' maydonini tanlang."
+            ),
+        }),
+        ("Chegirma / Ustama qiymati", {
+            "fields": ("discount_type", "percent"),
+            "description": "🔻 Chegirma — narxni kamaytiradi. 🔺 Ustama — narxni oshiradi (masalan bayram kunlari).",
+        }),
+        ("Amal qilish muddati", {
+            "fields": ("start_date", "end_date"),
+        }),
+    )
+
+    @admin.display(description="Qamrovi")
+    def scope_badge(self, obj):
+        colors = {"all": "#2563eb", "sport": "#7c3aed", "venue": "#059669"}
+        color = colors.get(obj.scope, "#6b7280")
+        return format_html(
+            '<span style="background:{}1a;color:{};padding:2px 8px;border-radius:6px;'
+            'font-size:11px;font-weight:700;border:1px solid {}40;">{}</span>',
+            color, color, color, obj.get_scope_display(),
+        )
+
+    @admin.display(description="Kimga tegishli")
+    def target_display(self, obj):
+        if obj.scope == Discount.Scope.VENUE and obj.venue_id:
+            return obj.venue.name
+        if obj.scope == Discount.Scope.SPORT and obj.sport_id:
+            return obj.sport.name
+        return "— Barchasi —"
+
+    @admin.display(description="Turi")
+    def type_badge(self, obj):
+        if obj.discount_type == Discount.DiscountType.INCREASE:
+            return format_html('<span style="color:#dc2626;font-weight:700;">🔺 +{}%</span>', obj.percent)
+        return format_html('<span style="color:#16a34a;font-weight:700;">🔻 -{}%</span>', obj.percent)
+
+    @admin.display(description="Holati")
+    def status_badge(self, obj):
+        today = timezone.now().date()
+        if not obj.is_active:
+            return format_html('<span style="color:#9ca3af;">{}</span>', "⛔ Nofaol")
+        if obj.start_date > today:
+            return format_html('<span style="color:#d97706;">{}</span>', "🕒 Hali boshlanmagan")
+        if obj.end_date < today:
+            return format_html('<span style="color:#dc2626;">{}</span>', "🔴 Muddati tugagan")
+        return format_html('<span style="color:#16a34a;font-weight:700;">{}</span>', "🟢 Hozir amal qiladi")
 
 
 # =====================================================

@@ -1,4 +1,7 @@
+from decimal import Decimal
+
 from django.contrib.auth.models import AbstractUser
+from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, MaxValueValidator, RegexValidator
 from django.db.models import (
     CharField,
@@ -6,6 +9,7 @@ from django.db.models import (
     Model,
     ForeignKey,
     CASCADE,
+    SET_NULL,
     TextField,
     FloatField,
     DecimalField,
@@ -17,6 +21,7 @@ from django.db.models import (
     PositiveSmallIntegerField, PositiveIntegerField,
 )
 from django.db.models.enums import TextChoices
+from django.utils import timezone
 
 
 class User(AbstractUser):
@@ -251,5 +256,131 @@ class SportType(Model):
     class Meta:
         verbose_name = "Sport turi"
         verbose_name_plural = "Sport turlari"
+
+# ----------------------------------------------------------------------------------
+
+
+class Discount(Model):
+    """
+    Admin panel orqali boshqariladigan narx chegirmasi/ustamasi.
+
+    Qamrov (scope) 3 xil bo'lishi mumkin:
+      - ALL   -> saytdagi barcha (tasdiqlangan) maydonlarga qo'llanadi
+      - SPORT -> faqat tanlangan sport turiga tegishli barcha maydonlarga qo'llanadi
+      - VENUE -> faqat bitta, aniq tanlangan maydonga qo'llanadi
+
+    Bir vaqtning o'zida bir nechta chegirma amal qilishi mumkin bo'lgan holatda,
+    ENG ANIQ (spetsifik) chegirma ustunlik qiladi: VENUE > SPORT > ALL.
+    (get_active_for_venue() shu tartibda tanlaydi)
+    """
+
+    class Scope(TextChoices):
+        ALL = "all", "🌍 Barcha maydonlar uchun"
+        SPORT = "sport", "⚽ Sport turi bo'yicha"
+        VENUE = "venue", "🏟 Bitta maydon uchun"
+
+    class DiscountType(TextChoices):
+        DECREASE = "decrease", "🔻 Chegirma (narxni kamaytirish)"
+        INCREASE = "increase", "🔺 Ustama (narxni oshirish)"
+
+    title = CharField(
+        "Nomi",
+        max_length=150,
+        help_text="Masalan: 'Yangi yil aksiyasi' yoki 'Bayram narxi'. Faqat admin uchun, foydalanuvchiga ko'rinadi.",
+    )
+    scope = CharField("Qamrovi", max_length=10, choices=Scope, default=Scope.ALL)
+    venue = ForeignKey(
+        "apps.Venue", CASCADE, related_name="discounts",
+        null=True, blank=True, verbose_name="Maydon",
+        help_text="Faqat qamrov 'Bitta maydon uchun' bo'lsa tanlanadi.",
+    )
+    sport = ForeignKey(
+        "apps.SportType", SET_NULL, related_name="discounts",
+        null=True, blank=True, verbose_name="Sport turi",
+        help_text="Faqat qamrov 'Sport turi bo'yicha' bo'lsa tanlanadi.",
+    )
+    discount_type = CharField("Turi", max_length=10, choices=DiscountType, default=DiscountType.DECREASE)
+    percent = DecimalField(
+        "Foizi (%)", max_digits=5, decimal_places=2,
+        validators=[MinValueValidator(0.01), MaxValueValidator(500)],
+        help_text="Masalan: 25.00 yoki 30.00",
+    )
+    start_date = DateField("Boshlanish sanasi", help_text="Chegirma shu sanadan boshlab amal qiladi")
+    end_date = DateField("Tugash sanasi", help_text="Chegirma shu sanada (kiritilgan kun ham) tugaydi")
+    is_active = BooleanField("Faol", default=True, help_text="O'chirilsa, muddati tugamagan bo'lsa ham qo'llanmaydi")
+    created_at = DateTimeField("Yaratilgan vaqti", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Chegirma"
+        verbose_name_plural = "Chegirmalar"
+        ordering = ("-created_at",)
+
+    def __str__(self):
+        sign = "+" if self.discount_type == self.DiscountType.INCREASE else "-"
+        return f"{self.title} ({sign}{self.percent}%)"
+
+    def clean(self):
+        if self.scope == self.Scope.VENUE and not self.venue_id:
+            raise ValidationError("Qamrov 'Bitta maydon uchun' bo'lganda, Maydon tanlanishi shart.")
+        if self.scope == self.Scope.SPORT and not self.sport_id:
+            raise ValidationError("Qamrov 'Sport turi bo'yicha' bo'lganda, Sport turi tanlanishi shart.")
+        if self.start_date and self.end_date and self.start_date > self.end_date:
+            raise ValidationError("Boshlanish sanasi tugash sanasidan kech bo'lishi mumkin emas.")
+
+    def save(self, *args, **kwargs):
+        # Qamrovga mos kelmaydigan FK larni avtomatik tozalaymiz (ma'lumot chalkashmasligi uchun)
+        if self.scope == self.Scope.ALL:
+            self.venue = None
+            self.sport = None
+        elif self.scope == self.Scope.VENUE:
+            self.sport = None
+        elif self.scope == self.Scope.SPORT:
+            self.venue = None
+        super().save(*args, **kwargs)
+
+    @property
+    def is_currently_valid(self):
+        today = timezone.now().date()
+        return bool(self.is_active and self.start_date <= today <= self.end_date)
+
+    @classmethod
+    def get_active_for_venue(cls, venue, on_date=None):
+        """
+        Berilgan maydon uchun aynan shu kunda amal qiladigan ENG ANIQ chegirmani qaytaradi.
+        Ustunlik tartibi: VENUE > SPORT > ALL. Topilmasa None qaytadi.
+        """
+        if venue is None:
+            return None
+        target_date = on_date or timezone.now().date()
+        base_qs = cls.objects.filter(
+            is_active=True,
+            start_date__lte=target_date,
+            end_date__gte=target_date,
+        )
+
+        venue_discount = base_qs.filter(scope=cls.Scope.VENUE, venue_id=venue.id).order_by("-created_at").first()
+        if venue_discount:
+            return venue_discount
+
+        if venue.sport_id:
+            sport_discount = (
+                base_qs.filter(scope=cls.Scope.SPORT, sport_id=venue.sport_id)
+                .order_by("-created_at")
+                .first()
+            )
+            if sport_discount:
+                return sport_discount
+
+        return base_qs.filter(scope=cls.Scope.ALL).order_by("-created_at").first()
+
+    def apply_to_price(self, price: Decimal) -> Decimal:
+        """Berilgan narxga ushbu chegirma/ustamani qo'llab, yangi narxni qaytaradi."""
+        price = Decimal(str(price))
+        pct = Decimal(str(self.percent))
+        if self.discount_type == self.DiscountType.INCREASE:
+            result = price * (Decimal("1") + pct / Decimal("100"))
+        else:
+            result = price * (Decimal("1") - pct / Decimal("100"))
+        return max(Decimal("0"), result).quantize(Decimal("0.01"))
 
 # ----------------------------------------------------------------------------------

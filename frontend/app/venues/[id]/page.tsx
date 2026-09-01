@@ -46,6 +46,15 @@ function slotRangeLabel(start: string) {
     return `${start} - ${String(endH).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
+/** "2026-08-01" -> "1 avg" ko'rinishida qisqa sana */
+function formatShortDate(iso?: string) {
+    if (!iso) return "";
+    const parts = iso.split("-").map(Number);
+    if (parts.length !== 3) return iso;
+    const [, m, d] = parts;
+    return `${d} ${MONTH_NAMES[m - 1]}`;
+}
+
 /** 20:00 dan keyingi soatlar (20% chegirma) va Bilyard uchun Shanba/Yakshanba (25% narx oshishi) */
 function calculateRangePrice(basePrice: number, startT: string, endT: string, dateIso?: string, sportName?: string) {
     if (!startT || !endT) return basePrice;
@@ -317,7 +326,14 @@ export default function VenueDetailPage(props: PageProps) {
         </div>
     );
 
-    const price = Number(venue.price);
+    const standardPrice = Number(venue.price);
+    // Admin panelidan (Chegirmalar bo'limidan) qo'yilgan chegirma/ustama hisobga olingan
+    // holdagi "samarali" narx — barcha keyingi hisob-kitoblar (soatlik narxlar, jami summa)
+    // shu narx asosida amalga oshadi, backenddagi calculate_booking_price bilan bir xil mantiqda.
+    const price = venue.discounted_price !== undefined && venue.discounted_price !== null
+        ? Number(venue.discounted_price)
+        : standardPrice;
+    const hasAdminDiscount = Boolean(venue.active_discount) && price !== standardPrice;
     const currentSportName = venue?.sport_name || (typeof venue?.sport === "object" ? (venue.sport as any)?.name : "") || venue?.name || "";
 
     let currentSelectedPrice = price;
@@ -583,6 +599,33 @@ export default function VenueDetailPage(props: PageProps) {
                         padding: "24px"
                     }}>
                         <div style={{marginBottom: "20px"}}>
+                            {venue.active_discount && (
+                                <div style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    flexWrap: "wrap",
+                                    gap: "6px",
+                                    background: venue.active_discount.type === "increase"
+                                        ? "rgba(239,68,68,0.12)" : "rgba(57,255,20,0.1)",
+                                    border: `1px solid ${venue.active_discount.type === "increase" ? "rgba(239,68,68,0.3)" : "rgba(57,255,20,0.25)"}`,
+                                    color: venue.active_discount.type === "increase" ? "#f87171" : "#39FF14",
+                                    fontSize: "11px",
+                                    fontWeight: 700,
+                                    padding: "5px 10px",
+                                    borderRadius: "8px",
+                                    marginBottom: "10px",
+                                }}>
+                                    <span>
+                                        {venue.active_discount.type === "increase" ? "🔺" : "🔥"} {venue.active_discount.title}
+                                        {" — "}
+                                        {venue.active_discount.type === "increase" ? "+" : "-"}
+                                        {Number(venue.active_discount.percent)}%
+                                    </span>
+                                    <span style={{opacity: 0.6, fontWeight: 400}}>
+                                        ({formatShortDate(venue.active_discount.start_date)} – {formatShortDate(venue.active_discount.end_date)})
+                                    </span>
+                                </div>
+                            )}
                             {currentSelectedPrice < price ? (
                                 <div>
                                     <div style={{
@@ -591,7 +634,7 @@ export default function VenueDetailPage(props: PageProps) {
                                         fontWeight: 700,
                                         marginBottom: "4px"
                                     }}>
-                                        🔥 20:00 dan keyingi vaqt uchun 20% Chegirma!
+                                        🔥 20:00 dan keyingi vaqt uchun qo'shimcha chegirma!
                                     </div>
                                     <div style={{display: "flex", alignItems: "baseline", gap: "10px"}}>
                                         <span style={{
@@ -610,9 +653,20 @@ export default function VenueDetailPage(props: PageProps) {
                                 <h3 style={{
                                     fontSize: "22px",
                                     fontWeight: 800,
-                                    color: "#39FF14",
+                                    color: venue.active_discount?.type === "increase" ? "#f87171" : "#39FF14",
                                     marginBottom: "0"
                                 }}>
+                                    {hasAdminDiscount && (
+                                        <span style={{
+                                            fontSize: "14px",
+                                            color: "rgba(255,255,255,0.35)",
+                                            textDecoration: "line-through",
+                                            fontWeight: 600,
+                                            marginRight: "8px",
+                                        }}>
+                                            {standardPrice.toLocaleString()}
+                                        </span>
+                                    )}
                                     {price.toLocaleString()} so'm <span style={{
                                     fontSize: "13px",
                                     color: "rgba(255,255,255,0.4)",
@@ -705,7 +759,7 @@ export default function VenueDetailPage(props: PageProps) {
                                         const booked = isBooked(slot) || isPastToday(slot);
                                         const selected = activeSlot === idx;
                                         const hour = parseInt(slot.split(":")[0]);
-                                        
+
                                         let isWeekendSlot = false;
                                         if (dates[activeDate]?.iso) {
                                             const parts = dates[activeDate].iso.split("-").map(Number);
