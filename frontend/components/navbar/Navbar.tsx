@@ -29,13 +29,21 @@ import {
 } from "@/services/api";
 
 import { useTheme } from "@/context/ThemeContext";
-import { translations, Language } from "@/constants/translations";
+import { useLanguage } from "@/context/LanguageContext";
+import { Language } from "@/constants/translations";
+
+const LANGUAGES = [
+  { code: "uz", flag: "🇺🇿", label: "O'zbekcha" },
+  { code: "ru", flag: "🇷🇺", label: "Русский" },
+  { code: "en", flag: "🇬🇧", label: "English" },
+];
 
 export default function Navbar() {
   const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
+  const { language, setLanguage, t } = useLanguage();
 
-  const [language, setLanguage] = useState<Language>("uz");
+  const [langDropdownOpen, setLangDropdownOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -43,8 +51,6 @@ export default function Navbar() {
   const [favoriteCount, setFavoriteCount] = useState(0);
   const [initial, setInitial] = useState("?");
   const [showNotification, setShowNotification] = useState(false);
-
-  const t = translations[language];
 
   useEffect(() => {
     const scroll = () => setScrolled(window.scrollY > 20);
@@ -174,24 +180,56 @@ export default function Navbar() {
               )}
             </Link>
 
-            {/* Language Selector */}
+            {/* Premium Flag Language Selector */}
             <div className="relative hidden lg:block">
-              <select
-                value={language}
-                onChange={(e) => setLanguage(e.target.value as Language)}
-                className="appearance-none rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white outline-none transition hover:bg-white/10 cursor-pointer pr-7"
+              <button
+                onClick={() => setLangDropdownOpen(!langDropdownOpen)}
+                className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-neon/40 text-xs font-bold text-white transition active:scale-95 cursor-pointer shadow-sm backdrop-blur-md"
               >
-                <option value="uz" className="bg-[#050505]">
-                  🇺🇿 UZ
-                </option>
-                <option value="ru" className="bg-[#050505]">
-                  🇷🇺 RU
-                </option>
-                <option value="en" className="bg-[#050505]">
-                  🇬🇧 EN
-                </option>
-              </select>
-              <Globe className="absolute right-2 top-2.5 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+                <span className="text-base leading-none">
+                  {language === "uz" ? "🇺🇿" : language === "ru" ? "🇷🇺" : "🇬🇧"}
+                </span>
+                <span className="font-extrabold text-neon">
+                  {language === "uz" ? "O'zbekcha" : language === "ru" ? "Русский" : "English"}
+                </span>
+                <span className="text-[9px] text-slate-400">▼</span>
+              </button>
+
+              <AnimatePresence>
+                {langDropdownOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 mt-2 w-44 rounded-2xl border border-white/10 bg-[#0E1117]/95 backdrop-blur-2xl shadow-2xl p-1.5 z-50 overflow-hidden"
+                  >
+                    {LANGUAGES.map((item) => {
+                      const isActive = language === item.code;
+                      return (
+                        <button
+                          key={item.code}
+                          onClick={() => {
+                            setLanguage(item.code as any);
+                            setLangDropdownOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition duration-200 ${
+                            isActive
+                              ? "bg-neon/10 text-neon border border-neon/30"
+                              : "text-gray-300 hover:bg-white/5 hover:text-white"
+                          }`}
+                        >
+                          <span className="flex items-center gap-2">
+                            <span className="text-base">{item.flag}</span>
+                            <span>{item.label}</span>
+                          </span>
+                          {isActive && <span className="w-2 h-2 rounded-full bg-neon animate-pulse" />}
+                        </button>
+                      );
+                    })}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* User Auth Link / Profile */}
@@ -248,7 +286,7 @@ export default function Navbar() {
                     className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-xs font-semibold text-slate-200 hover:border-neon/30"
                   >
                     <Search size={16} className="text-neon" />
-                    <span>Qidiruv</span>
+                    <span>{t.search}</span>
                   </button>
 
                   <button
@@ -258,7 +296,41 @@ export default function Navbar() {
                     className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-xs font-semibold text-slate-200 hover:border-neon/30"
                   >
                     {theme === "dark" ? <Sun size={16} className="text-amber-400" /> : <Moon size={16} />}
-                    <span>{theme === "dark" ? "Kunduzi" : "Tungi"}</span>
+                    <span>{theme === "dark" ? t.themeDay : t.themeNight}</span>
+                  </button>
+                </div>
+
+                {/* Mobile Language Switcher */}
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    onClick={() => setLanguage("uz")}
+                    className={`py-2 rounded-xl border text-xs font-bold transition ${
+                      language === "uz"
+                        ? "border-neon bg-neon/10 text-neon"
+                        : "border-white/10 bg-white/5 text-gray-300"
+                    }`}
+                  >
+                    🇺🇿 UZ
+                  </button>
+                  <button
+                    onClick={() => setLanguage("ru")}
+                    className={`py-2 rounded-xl border text-xs font-bold transition ${
+                      language === "ru"
+                        ? "border-neon bg-neon/10 text-neon"
+                        : "border-white/10 bg-white/5 text-gray-300"
+                    }`}
+                  >
+                    🇷🇺 RU
+                  </button>
+                  <button
+                    onClick={() => setLanguage("en")}
+                    className={`py-2 rounded-xl border text-xs font-bold transition ${
+                      language === "en"
+                        ? "border-neon bg-neon/10 text-neon"
+                        : "border-white/10 bg-white/5 text-gray-300"
+                    }`}
+                  >
+                    🇬🇧 EN
                   </button>
                 </div>
 

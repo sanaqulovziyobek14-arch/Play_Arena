@@ -26,6 +26,7 @@ export default function NavLinks({
     { href: "/venues", label: t.venues },
     { href: "/sports", label: t.sports },
     { href: "/bookings", label: t.bookings },
+    { href: "/my-venues", label: t.myVenues },
     { href: "/about", label: t.about },
   ];
 

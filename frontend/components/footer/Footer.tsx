@@ -1,31 +1,30 @@
+"use client";
 import Link from "next/link";
-const LINKS = {
-  "Platforma": [
-    { label: "Bosh sahifa",    href: "/" },
-    { label: "Maydonlar",      href: "/venues" },
-    { label: "Sport turlari",  href: "/sports" },
-    { label: "Bronlarim",      href: "/bookings" },
-  ],
-  "Kompaniya": [
-    { label: "Biz haqimizda",  href: "/about" },
-    { label: "Yangiliklar",    href: "#" },
-    { label: "Hamkorlik",      href: "#" },
-    { label: "Bog'lanish",     href: "/about" },
-  ],
-  "Yordam": [
-    { label: "Qo'llab-quvvatlash", href: "#" },
-    { label: "FAQ",                href: "#" },
-    { label: "Maxfiylik",          href: "#" },
-    { label: "Foydalanish shartlari", href: "#" },
-  ],
-};
-const SOCIALS = [
-  { icon: "📘", label: "Facebook",  href: "#" },
-  { icon: "📸", label: "Instagram", href: "#" },
-  { icon: "📱", label: "Telegram",  href: "https://t.me/PlayArena_bronqilsih_bot" },
-  { icon: "▶️", label: "YouTube",   href: "#" },
-];
+import { useLanguage } from "@/context/LanguageContext";
+
 export default function Footer() {
+  const { t } = useLanguage();
+
+  const LINKS = {
+    "Platforma": [
+      { label: t.home,     href: "/" },
+      { label: t.venues,   href: "/venues" },
+      { label: t.sports,   href: "/sports" },
+      { label: t.bookings, href: "/bookings" },
+    ],
+    "Kompaniya": [
+      { label: t.about,    href: "/about" },
+      { label: t.catalog,  href: "/venues" },
+      { label: t.myVenues, href: "/my-venues" },
+    ],
+  };
+
+  const SOCIALS = [
+    { icon: "📘", label: "Facebook",  href: "#" },
+    { icon: "📸", label: "Instagram", href: "#" },
+    { icon: "📱", label: "Telegram",  href: "https://t.me/PlayArena_bronqilsih_bot" },
+    { icon: "▶️", label: "YouTube",   href: "#" },
+  ];
   return (
     <footer style={{
       background: "#030303",
@@ -133,7 +132,7 @@ export default function Footer() {
           justifyContent: "space-between", flexWrap: "wrap", gap: "12px",
         }}>
           <p style={{ fontSize: "0.8125rem", color: "#7a8085" }}>
-            © {new Date().getFullYear()} PlayArena. Barcha huquqlar himoyalangan.
+            © {new Date().getFullYear()} PlayArena. {t.rightsReserved}
           </p>
           <p style={{ fontSize: "0.8125rem", color: "#7a8085" }}>
             🇺🇿 Toshkent, O'zbekiston

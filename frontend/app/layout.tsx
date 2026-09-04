@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { DM_Sans, Syne } from "next/font/google";
 import { ThemeProvider, useTheme } from "@/context/ThemeContext";
+import { LanguageProvider } from "@/context/LanguageContext";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -95,7 +96,9 @@ export default function RootLayout({
       className={`${dmSans.variable} ${syne.variable} h-full`}
     >
       <ThemeProvider>
-        <AppShell>{children}</AppShell>
+        <LanguageProvider>
+          <AppShell>{children}</AppShell>
+        </LanguageProvider>
       </ThemeProvider>
     </html>
   );

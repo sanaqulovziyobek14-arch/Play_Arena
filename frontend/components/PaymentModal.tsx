@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { CreditCard, ShieldCheck, CheckCircle2, AlertCircle, Lock } from "lucide-react";
 import { paymentsAPI, bookingsAPI } from "@/services/api";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface PaymentModalProps {
   bookingId: number;
@@ -34,6 +35,7 @@ const DefaultCardLogo = () => (
 );
 
 export default function PaymentModal({ bookingId, isOpen, onClose, onSuccess, customPrice }: PaymentModalProps) {
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [totalPrice, setTotalPrice] = useState<number>(customPrice || 0);
@@ -143,9 +145,9 @@ export default function PaymentModal({ bookingId, isOpen, onClose, onSuccess, cu
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white leading-tight">Xavfsiz To'lov Tizimi</h3>
+              <h3 className="text-lg font-bold text-white leading-tight">{t.securePayment}</h3>
               <p className="text-xs text-white/50 flex items-center gap-1">
-                <Lock className="w-3 h-3 text-emerald-400" /> 256-bit SSL shifrlangan
+                <Lock className="w-3 h-3 text-emerald-400" /> {t.sslEncryption}
               </p>
             </div>
           </div>
@@ -166,7 +168,7 @@ export default function PaymentModal({ bookingId, isOpen, onClose, onSuccess, cu
 
         {/* 1. TO'LOV TURI (50% DEPOSIT DEFAULT) */}
         <div className="mb-5 space-y-2">
-          <label className="block text-xs font-semibold text-white/40 uppercase tracking-wider">To'lov Turini Tanlang:</label>
+          <label className="block text-xs font-semibold text-white/40 uppercase tracking-wider">{t.selectPaymentType}</label>
 
           <div className="grid grid-cols-2 gap-2.5">
             {/* 50% DEPOSIT OPTION (DEFAULT) */}
@@ -180,7 +182,7 @@ export default function PaymentModal({ bookingId, isOpen, onClose, onSuccess, cu
             >
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold uppercase border border-emerald-500/30">
-                  ⚡ 50% Avans
+                  {t.deposit50}
                 </span>
                 <input
                   type="radio"
@@ -191,9 +193,9 @@ export default function PaymentModal({ bookingId, isOpen, onClose, onSuccess, cu
                 />
               </div>
               <div>
-                <div className="text-xs text-white/50 font-medium">Hozir to'lanadi:</div>
+                <div className="text-xs text-white/50 font-medium">{t.payNow}</div>
                 <div className="text-base font-extrabold text-emerald-400">
-                  {depositAmount.toLocaleString()} <span className="text-xs font-normal">so'm</span>
+                  {depositAmount.toLocaleString()} <span className="text-xs font-normal">{t.som}</span>
                 </div>
               </div>
             </div>
@@ -209,7 +211,7 @@ export default function PaymentModal({ bookingId, isOpen, onClose, onSuccess, cu
             >
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[10px] bg-white/10 text-white/70 px-2 py-0.5 rounded-full font-bold uppercase border border-white/10">
-                  100% To'liq
+                  {t.full100}
                 </span>
                 <input
                   type="radio"
@@ -220,9 +222,9 @@ export default function PaymentModal({ bookingId, isOpen, onClose, onSuccess, cu
                 />
               </div>
               <div>
-                <div className="text-xs text-white/50 font-medium">To'liq summa:</div>
+                <div className="text-xs text-white/50 font-medium">{t.fullAmount}</div>
                 <div className="text-base font-extrabold text-white">
-                  {fullAmount.toLocaleString()} <span className="text-xs font-normal">so'm</span>
+                  {fullAmount.toLocaleString()} <span className="text-xs font-normal">{t.som}</span>
                 </div>
               </div>
             </div>
@@ -287,18 +289,18 @@ export default function PaymentModal({ bookingId, isOpen, onClose, onSuccess, cu
             <div className="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto border border-emerald-500/30">
               <CheckCircle2 className="w-10 h-10 animate-bounce" />
             </div>
-            <h4 className="text-xl font-extrabold text-white">To'lov Muvaffaqiyatli Bajarildi!</h4>
+            <h4 className="text-xl font-extrabold text-white">{t.paymentSuccess}</h4>
             <p className="text-xs text-white/60">
-              Broningiz tasdiqlandi. Yo'naltirilmoqdasiz...
+              {t.bookingSuccess}
             </p>
           </div>
         ) : (
           <form onSubmit={handleProcessPayment} className="space-y-3.5">
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="block text-xs font-semibold text-white/60 uppercase">Karta Raqami</label>
-                {cardType === "uzcard" && <span className="text-[10px] text-cyan-400 font-bold">✓ Uzcard aniqlandi</span>}
-                {cardType === "humo" && <span className="text-[10px] text-emerald-400 font-bold">✓ Humo aniqlandi</span>}
+                <label className="block text-xs font-semibold text-white/60 uppercase">{t.cardNumber}</label>
+                {cardType === "uzcard" && <span className="text-[10px] text-cyan-400 font-bold">✓ Uzcard</span>}
+                {cardType === "humo" && <span className="text-[10px] text-emerald-400 font-bold">✓ Humo</span>}
               </div>
               <input
                 type="text"
@@ -312,10 +314,10 @@ export default function PaymentModal({ bookingId, isOpen, onClose, onSuccess, cu
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-white/60 uppercase mb-1">Ism va Familiya</label>
+              <label className="block text-xs font-semibold text-white/60 uppercase mb-1">{t.cardHolder}</label>
               <input
                 type="text"
-                placeholder="ZIYOBEK SANAQULOV"
+                placeholder="ISM FAMILIYA"
                 value={cardHolder}
                 onChange={(e) => setCardHolder(e.target.value.toUpperCase())}
                 className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none uppercase text-white placeholder-white/20 text-sm"
@@ -325,7 +327,7 @@ export default function PaymentModal({ bookingId, isOpen, onClose, onSuccess, cu
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-white/60 uppercase mb-1">Oy (MM)</label>
+                <label className="block text-xs font-semibold text-white/60 uppercase mb-1">{t.expireMonth}</label>
                 <input
                   type="text"
                   maxLength={2}
@@ -337,7 +339,7 @@ export default function PaymentModal({ bookingId, isOpen, onClose, onSuccess, cu
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-white/60 uppercase mb-1">Yil (YY)</label>
+                <label className="block text-xs font-semibold text-white/60 uppercase mb-1">{t.expireYear}</label>
                 <input
                   type="text"
                   maxLength={2}
@@ -355,7 +357,7 @@ export default function PaymentModal({ bookingId, isOpen, onClose, onSuccess, cu
               disabled={loading}
               className="w-full py-3.5 mt-2 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white font-extrabold rounded-xl shadow-lg shadow-emerald-500/20 transition duration-200 text-sm flex items-center justify-center gap-2"
             >
-              {loading ? "Yechilmoqda..." : `💳 ${chargeAmount.toLocaleString()} SO'M TO'LASH →`}
+              {loading ? "..." : `💳 ${chargeAmount.toLocaleString()} ${t.som} ${t.processPayment} →`}
             </button>
           </form>
         )}

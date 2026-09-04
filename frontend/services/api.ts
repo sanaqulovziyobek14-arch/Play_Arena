@@ -63,6 +63,10 @@ export interface Venue {
     status: "pending" | "approved" | "rejected";
     size?: string;
     surface_type?: string;
+    has_shower?: boolean;
+    has_lighting?: boolean;
+    has_dressing_room?: boolean;
+    has_equipment_rental?: boolean;
     /** Admin panelidan (Chegirmalar bo'limidan) hozir amal qilayotgan chegirma/ustama, bo'lmasa null */
     active_discount?: ActiveDiscount | null;
     /** active_discount hisobga olingan holdagi bir soatlik yakuniy narx (string, masalan "70000.00") */

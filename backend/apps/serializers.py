@@ -108,6 +108,8 @@ class VenueCreateSerializer(ModelSerializer):
     uploaded_images = ListField(
         child=ImageField(max_length=1000000, allow_empty_file=False, use_url=False),
         write_only=True,
+        required=False,
+        default=[],
     )
 
     class Meta:
@@ -130,25 +132,23 @@ class VenueCreateSerializer(ModelSerializer):
         ]
 
     def validate_uploaded_images(self, value):
-        if len(value) < 2:
-            raise ValidationError(
-                "Stadion saytga chiqishi uchun kamida 2 ta rasm yuklashingiz shart!"
-            )
-        if len(value) > 10:
+        if value and len(value) > 10:
             raise ValidationError("Maksimum 10 tagacha rasm yuklash imkoniyati mavjud.")
         return value
 
+
     def create(self, validated_data):
-        images_data = validated_data.pop("uploaded_images")
+        images_data = validated_data.pop("uploaded_images", [])
         user = self.context["request"].user
         with transaction.atomic():
             venue = Venue.objects.create(
                 owner=user, status=Venue.Role.PENDING, **validated_data
             )
-            venue_images = [
-                VenueImage(venue=venue, image=image_data) for image_data in images_data
-            ]
-            VenueImage.objects.bulk_create(venue_images)
+            if images_data:
+                venue_images = [
+                    VenueImage(venue=venue, image=image_data) for image_data in images_data
+                ]
+                VenueImage.objects.bulk_create(venue_images)
 
         return venue
 
@@ -405,6 +405,17 @@ class BookingModelSerializer(ModelSerializer):
         )
 
     def get_total_price(self, obj) -> Decimal:
+        """
+        MUHIM: bu yerda venue narxini yoki aktiv chegirmani QAYTA hisoblamaymiz —
+        aks holda admin keyinchalik chegirmani o'zgartirsa/o'chirsa, foydalanuvchi
+        allaqachon TO'LAGAN summadan farqli raqamni ko'rib qolishi mumkin edi.
+        Buning o'rniga bron yaratilgan paytda `create()` ichida hisoblab, `paid_amount`
+        va `remaining_amount`ga SAQLANGAN (snapshot qilingan) qiymatni qaytaramiz —
+        bu har doim foydalanuvchi haqiqatda ko'rgan/to'lagan narx bilan mos keladi.
+        """
+        if obj.paid_amount is not None and obj.remaining_amount is not None:
+            return obj.paid_amount + obj.remaining_amount
+        # Zaxira variant — juda eski, snapshot qilinmagan yozuvlar uchun
         return calculate_booking_price(obj.venue, obj.date, obj.start_time, obj.end_time)
 
     def validate(self, data):
