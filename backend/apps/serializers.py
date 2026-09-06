@@ -319,7 +319,6 @@ def calculate_booking_price(venue, booking_date, start_t: time, end_t: time) -> 
 
     base_price = Decimal(str(venue.price))
 
-    # 0-HOLAT: Admin panelidan qo'yilgan chegirma/ustama (agar shu kunga amal qilsa)
     active_discount = Discount.get_active_for_venue(
         venue, on_date=booking_date if isinstance(booking_date, date) else None
     )
@@ -328,24 +327,26 @@ def calculate_booking_price(venue, booking_date, start_t: time, end_t: time) -> 
 
     sport_name = getattr(venue.sport, "name", "").lower() if hasattr(venue, "sport") and venue.sport else ""
     is_bilyard = "bilyard" in sport_name or "billiard" in sport_name
+    is_futbol = "futbol" in sport_name or "fudbol" in sport_name or "football" in sport_name
 
     is_weekend = False
     if booking_date and hasattr(booking_date, "weekday") and booking_date.weekday() in (5, 6):
         is_weekend = True
+
+    if is_futbol and is_weekend:
+        base_price = base_price * Decimal("1.25")
 
     start_dt = datetime.combine(date.min, start_t)
     end_dt = datetime.combine(date.min, end_t)
     if end_dt <= start_dt:
         end_dt = datetime.combine(date.min + timezone.timedelta(days=1), end_t)
 
-    # 1-HOLAT: Bilyard va Shanba/Yakshanba -> 25% narx oshadi va 20:00 chegirmasi TA'SIR QILMAYDI
     if is_bilyard and is_weekend:
         weekend_price = base_price * Decimal("1.25")
         duration_hours = Decimal(str((end_dt - start_dt).total_seconds())) / Decimal("3600")
         total = duration_hours * weekend_price
         return Decimal(str(round(total, 2)))
 
-    # 2-HOLAT: Barcha boshqa holatlar -> 20:00 dan keyin 20% chegirma Hisoblanadi
     discount_boundary = datetime.combine(date.min, time(20, 0))
 
     std_sec = max(
@@ -415,7 +416,6 @@ class BookingModelSerializer(ModelSerializer):
         """
         if obj.paid_amount is not None and obj.remaining_amount is not None:
             return obj.paid_amount + obj.remaining_amount
-        # Zaxira variant — juda eski, snapshot qilinmagan yozuvlar uchun
         return calculate_booking_price(obj.venue, obj.date, obj.start_time, obj.end_time)
 
     def validate(self, data):
@@ -595,18 +595,6 @@ class ReviewModelSerializer(ModelSerializer):
         return value
 
     def validate(self, data):
-        request = self.context.get("request")
-        if not request:
-            return data
-        user = request.user
-        venue = data.get("venue")
-        has_booked = Booking.objects.filter(
-            user=user, venue=venue, status__in=["paid", "pending"]
-        ).exists()
-        if not has_booked and not user.is_admin:
-            raise ValidationError(
-                "Sharh qoldirish uchun avval bu maydonni bron qilishingiz kerak."
-            )
         return data
 
 

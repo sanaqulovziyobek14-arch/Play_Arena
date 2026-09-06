@@ -9,7 +9,7 @@ import {useRouter} from "next/navigation";
 import Navbar from "@/components/navbar/Navbar";
 import Footer from "@/components/footer/Footer";
 import PaymentModal from "@/components/PaymentModal";
-import {venuesAPI, bookingsAPI, paymentsAPI, getAccessToken, type Venue} from "@/services/api";
+import {venuesAPI, bookingsAPI, paymentsAPI, reviewsAPI, getAccessToken, type Venue, type Review} from "@/services/api";
 
 
 const DAY_NAMES = ["Yakshanba", "Dushanba", "Seshanba", "Chorshanba", "Payshanba", "Juma", "Shanba"];
@@ -164,6 +164,64 @@ export default function VenueDetailPage(props: PageProps) {
     const [customStart, setCustomStart] = useState("");
     const [customEnd, setCustomEnd] = useState("");
     const [customError, setCustomError] = useState("");
+
+    // Reviews & 5-Star Interactive Rating State
+    const [reviews, setReviews] = useState<Review[]>([]);
+    const [userRating, setUserRating] = useState<number>(5);
+    const [hoverRating, setHoverRating] = useState<number>(0);
+    const [userComment, setUserComment] = useState<string>("");
+    const [reviewSubmitting, setReviewSubmitting] = useState<boolean>(false);
+    const [reviewError, setReviewError] = useState<string>("");
+    const [reviewSuccess, setReviewSuccess] = useState<string>("");
+
+    const loadReviews = useCallback(async () => {
+        if (!cleanId) return;
+        try {
+            const res = await reviewsAPI.getByVenue(cleanId);
+            setReviews(res.results || []);
+        } catch {
+            setReviews([]);
+        }
+    }, [cleanId]);
+
+    useEffect(() => {
+        loadReviews();
+    }, [loadReviews]);
+
+    const handleSubmitReview = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!cleanId) return;
+        const token = getAccessToken();
+        if (!token) {
+            setReviewError("Sharh qoldirish uchun tizimga kiring!");
+            return;
+        }
+        if (!userComment.trim()) {
+            setReviewError("Iltimos, sharh matnini yozing!");
+            return;
+        }
+
+        setReviewSubmitting(true);
+        setReviewError("");
+        setReviewSuccess("");
+
+        try {
+            await reviewsAPI.create({
+                venue: cleanId,
+                rating: userRating,
+                comment: userComment,
+            });
+            setReviewSuccess("Sharhingiz va bahoingiz muvaffaqiyatli saqlandi! Rahmat! 🌟");
+            setUserComment("");
+            await loadReviews();
+            const updatedVenue = await venuesAPI.getById(cleanId);
+            setVenue(updatedVenue);
+        } catch (err: any) {
+            setReviewError(err?.message || "Sharh saqlashda xatolik yuz berdi.");
+        } finally {
+            setReviewSubmitting(false);
+        }
+    };
 
     useEffect(() => {
         if (!cleanId) {
@@ -897,6 +955,167 @@ export default function VenueDetailPage(props: PageProps) {
                         )}
                     </motion.div>
 
+                </div>
+            </section>
+
+            {/* ══════════════════════════════════════════════════════ */}
+            {/* 🌟 SHARHLAR VA REYTING BO'LIMI (INTERAKTIV 5 TA YULDUZCHA) */}
+            {/* ══════════════════════════════════════════════════════ */}
+            <section className="mt-16 border-t border-[#39FF14]/20 pt-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-16">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+                    <div>
+                        <h2 className="text-2xl sm:text-3xl font-black text-white flex items-center gap-3">
+                            <span>⭐ Sharhlar va Reytinglar</span>
+                            <span className="text-sm font-bold px-3.5 py-1.5 rounded-full bg-[#39FF14]/10 text-[#39FF14] border border-[#39FF14]/30 shadow-[0_0_15px_rgba(57,255,20,0.2)]">
+                                {reviews.length > 0
+                                    ? `${(reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)} / 5.0 (${reviews.length} ta sharh)`
+                                    : "Hali baholanmagan"}
+                            </span>
+                        </h2>
+                        <p className="text-xs sm:text-sm text-gray-400 mt-1">
+                            Foydalanuvchilarning ushbu maydon haqidagi fikrlari va 5 yulduzli baholari
+                        </p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    {/* SHARH QOLDIRISH FORMASI (5 INTERAKTIV YULDUZCHA) */}
+                    <div className="lg:col-span-5 p-6 sm:p-8 rounded-3xl bg-[#0E1117]/90 border border-[#39FF14]/30 shadow-[0_0_30px_rgba(57,255,20,0.15)] backdrop-blur-2xl flex flex-col justify-between">
+                        <div>
+                            <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
+                                <span className="text-[#39FF14] text-xl">✍️</span> Fikringiz va Bahoingizni Qoldiring
+                            </h3>
+                            <p className="text-xs text-gray-400 mb-6">
+                                Sizning bahoingiz boshqa foydalanuvchilarga eng yaxshi maydonni tanlashga yordam beradi.
+                            </p>
+
+                            {/* 5 TA INTERAKTIV YULDUZCHA (SARIQ RANGDA) */}
+                            <div className="mb-6 p-4 rounded-2xl bg-black/40 border border-white/10 text-center">
+                                <div className="text-xs font-bold text-gray-300 uppercase tracking-wider mb-2">
+                                    Bahoingizni Tanlang:
+                                </div>
+                                <div className="flex items-center justify-center gap-2">
+                                    {[1, 2, 3, 4, 5].map((star) => {
+                                        const isFilled = star <= (hoverRating || userRating);
+                                        return (
+                                            <button
+                                                key={star}
+                                                type="button"
+                                                onClick={() => setUserRating(star)}
+                                                onMouseEnter={() => setHoverRating(star)}
+                                                onMouseLeave={() => setHoverRating(0)}
+                                                className="p-1 text-3xl sm:text-4xl transition-transform hover:scale-125 focus:outline-none cursor-pointer"
+                                            >
+                                                <span
+                                                    className={isFilled ? "text-amber-400 drop-shadow-[0_0_15px_rgba(245,158,11,0.9)]" : "text-gray-700"}
+                                                >
+                                                    ★
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                                <div className="mt-2 text-xs font-black text-amber-400">
+                                    {userRating === 5 && "🌟 5.0 - A'lo! Mukammal maydon!"}
+                                    {userRating === 4 && "👍 4.0 - Juda yaxshi!"}
+                                    {userRating === 3 && "😊 3.0 - Yaxshi, qoniqarli"}
+                                    {userRating === 2 && "😐 2.0 - O'rtacha"}
+                                    {userRating === 1 && "🙁 1.0 - Yomon"}
+                                </div>
+                            </div>
+
+                            {/* SHARH MATNI INPUTI */}
+                            <form onSubmit={handleSubmitReview} className="space-y-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5">
+                                        Sharh matni:
+                                    </label>
+                                    <textarea
+                                        rows={4}
+                                        value={userComment}
+                                        onChange={(e) => setUserComment(e.target.value)}
+                                        placeholder="Maydon sifati, chim, chiroqlar va sharoitlar haqida fikringizni yozing..."
+                                        className="w-full p-4 rounded-2xl bg-[#080A0D] border border-[#39FF14]/30 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-[#39FF14] focus:ring-1 focus:ring-[#39FF14] transition"
+                                        required
+                                    />
+                                </div>
+
+                                {reviewError && (
+                                    <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-semibold">
+                                        ⚠️ {reviewError}
+                                    </div>
+                                )}
+
+                                {reviewSuccess && (
+                                    <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold">
+                                        ✅ {reviewSuccess}
+                                    </div>
+                                )}
+
+                                <button
+                                    type="submit"
+                                    disabled={reviewSubmitting}
+                                    className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-[#39FF14] via-[#00D26A] to-emerald-500 hover:from-[#32e010] hover:to-emerald-400 text-black font-black text-sm sm:text-base tracking-wide shadow-[0_0_30px_rgba(57,255,20,0.5)] hover:shadow-[0_0_40px_rgba(57,255,20,0.7)] transition duration-200 cursor-pointer flex items-center justify-center gap-2 border border-[#39FF14] active:scale-95"
+                                >
+                                    {reviewSubmitting ? "Saqlanmoqda..." : "⭐ Sharh va Reytingni Saqlash"}
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    {/* MAVJUD SHARHLAR RO'YXATI */}
+                    <div className="lg:col-span-7 space-y-4">
+                        {reviews.length === 0 ? (
+                            <div className="p-12 rounded-3xl bg-[#0E1117]/80 border border-[#39FF14]/20 text-center flex flex-col items-center justify-center">
+                                <div className="text-4xl mb-3">💬</div>
+                                <h4 className="text-base font-bold text-white">Hali hech kim sharh qoldirmagan</h4>
+                                <p className="text-xs text-gray-400 mt-1">
+                                    Birinchi bo'lib 5 yulduzli baho va sharhingizni qoldiring!
+                                </p>
+                            </div>
+                        ) : (
+                            reviews.map((rev) => (
+                                <div
+                                    key={rev.id}
+                                    className="p-5 rounded-2xl bg-[#0E1117]/90 border border-[#39FF14]/20 hover:border-[#39FF14]/50 transition duration-200 space-y-3 shadow-lg"
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#39FF14] to-emerald-500 font-black text-black flex items-center justify-center text-sm shadow-md shadow-[#39FF14]/20">
+                                                {(rev.user_username || rev.user_name || "U").charAt(0).toUpperCase()}
+                                            </div>
+                                            <div>
+                                                <div className="text-sm font-bold text-white">
+                                                    {rev.user_username || rev.user_name || `Foydalanuvchi #${rev.user}`}
+                                                </div>
+                                                <div className="text-[11px] text-gray-500">
+                                                    {new Date(rev.created_at).toLocaleDateString("uz-UZ", {
+                                                        year: "numeric",
+                                                        month: "short",
+                                                        day: "numeric",
+                                                    })}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* RATINGS STARS BADGE (SARIQ RANGDA) */}
+                                        <div className="flex items-center gap-1 bg-amber-400/10 border border-amber-400/30 px-3 py-1 rounded-full">
+                                            <span className="text-amber-400 text-sm">
+                                                {"★".repeat(rev.rating)}{"☆".repeat(5 - rev.rating)}
+                                            </span>
+                                            <span className="text-xs font-extrabold text-amber-400 ml-1">
+                                                {rev.rating}.0
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <p className="text-xs sm:text-sm text-gray-300 leading-relaxed italic">
+                                        "{rev.comment}"
+                                    </p>
+                                </div>
+                            ))
+                        )}
+                    </div>
                 </div>
             </section>
 

@@ -776,33 +776,44 @@ export default function VenuesClient() {
                                                     justifyContent: "space-between"
                                                 }}>
                                                     <div>
-                                                        {venue.active_discount && Number(venue.discounted_price) !== Number(venue.price) ? (
-                                                            <div style={{display: "flex", alignItems: "baseline", gap: "6px"}}>
+                                                        {venue.active_discount || (venue.discounted_price && Number(venue.discounted_price) < Number(venue.price)) ? (
+                                                            <div style={{display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap"}}>
                                                                 <span style={{
-                                                                    fontSize: "10.5px",
-                                                                    color: "rgba(255,255,255,0.3)",
+                                                                    fontSize: "11px",
+                                                                    color: "#ef4444",
                                                                     textDecoration: "line-through",
+                                                                    fontWeight: 600
                                                                 }}>
-                                                                    {Number(venue.price).toLocaleString()}
+                                                                    {Number(venue.price).toLocaleString()} so&apos;m
                                                                 </span>
                                                                 <span style={{
                                                                     fontSize: "14px",
-                                                                    fontWeight: 800,
-                                                                    color: venue.active_discount.type === "increase" ? "#f87171" : "#39FF14",
+                                                                    fontWeight: 900,
+                                                                    color: "#39FF14",
                                                                 }}>
-                                                                    {Number(venue.discounted_price).toLocaleString()}
+                                                                    {Number(venue.discounted_price || venue.price).toLocaleString()} <span style={{fontSize: "10px", color: "rgba(255,255,255,0.4)", fontWeight: 400}}>so&apos;m/soat</span>
+                                                                </span>
+                                                                <span style={{
+                                                                    background: "rgba(255,59,48,0.2)",
+                                                                    border: "1px solid rgba(255,59,48,0.4)",
+                                                                    color: "#ff453a",
+                                                                    fontSize: "10px",
+                                                                    fontWeight: 800,
+                                                                    padding: "2px 6px",
+                                                                    borderRadius: "6px"
+                                                                }}>
+                                                                    🔥 -{venue.active_discount?.percent || venue.discount_percent || 20}%
                                                                 </span>
                                                             </div>
                                                         ) : (
                                                             <div style={{fontSize: "14px", fontWeight: 800, color: "#39FF14"}}>
-                                                                {Number(venue.price).toLocaleString()}
+                                                                {Number(venue.price).toLocaleString()} <span style={{
+                                                                fontSize: "10px",
+                                                                color: "rgba(255,255,255,0.3)",
+                                                                fontWeight: 400
+                                                            }}>so&apos;m/soat</span>
                                                             </div>
                                                         )}
-                                                        <span style={{
-                                                            fontSize: "10px",
-                                                            color: "rgba(255,255,255,0.25)",
-                                                            fontWeight: 400
-                                                        }}>{"so'm/soat"}</span>
                                                     </div>
                                                     <span style={{
                                                         fontSize: "11px",

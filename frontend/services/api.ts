@@ -71,6 +71,8 @@ export interface Venue {
     active_discount?: ActiveDiscount | null;
     /** active_discount hisobga olingan holdagi bir soatlik yakuniy narx (string, masalan "70000.00") */
     discounted_price?: string;
+    discount_percent?: number;
+    discount_start_time?: string;
 }
 
 export interface Booking {
@@ -114,6 +116,7 @@ export interface Review {
     id: number;
     venue: number;
     user: number;
+    user_username?: string;
     user_name?: string;
     user_image?: string;
     rating: number;          // 1-5

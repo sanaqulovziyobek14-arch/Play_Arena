@@ -643,16 +643,15 @@ class ReviewViewSet(ModelViewSet):
     def perform_create(self, serializer):
         user = self.request.user
         venue = serializer.validated_data["venue"]
-        has_booking = Booking.objects.filter(
-            user=user, venue=venue, status__in=["paid", "pending"]
-        ).exists()
-        if not has_booking and not user.is_admin:
-            raise PermissionDenied(
-                "Sharh yozish uchun avval bu maydonni bron qilishingiz kerak."
-            )
-        if Review.objects.filter(user=user, venue=venue).exists():
-            raise PermissionDenied("Siz bu maydon uchun allaqachon sharh yozgansiz.")
-        serializer.save(user=user)
+        existing = Review.objects.filter(user=user, venue=venue).first()
+        if existing:
+            existing.rating = serializer.validated_data.get("rating", existing.rating)
+            existing.comment = serializer.validated_data.get("comment", existing.comment)
+            existing.save()
+            serializer.instance = existing
+        else:
+            serializer.save(user=user)
+
 
     def perform_update(self, serializer):
         self._check_author(self.request.user, serializer.instance.user)
