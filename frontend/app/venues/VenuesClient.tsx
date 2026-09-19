@@ -597,6 +597,19 @@ export default function VenuesClient() {
                                 const style = getStyle(venue.sport_name);
                                 const isFav = Boolean(favMap[venue.id]);
                                 const rating = (venue as any).rating && Number((venue as any).rating) > 0 ? Number((venue as any).rating) : 0;
+                                const basePriceNum = Number(venue.price || 0);
+                                const effectivePriceNum = Number(venue.today_price || venue.discounted_price || basePriceNum);
+                                const hasPriceDiff = effectivePriceNum !== basePriceNum;
+                                const badgeObj = venue.today_badge || (venue.active_discount ? {
+                                    type: venue.active_discount.type,
+                                    label: `${venue.active_discount.type === "increase" ? "+" : "-"}${venue.active_discount.percent}%`,
+                                    title: venue.active_discount.title
+                                } : hasPriceDiff ? {
+                                    type: effectivePriceNum > basePriceNum ? "increase" : "decrease",
+                                    label: effectivePriceNum < basePriceNum ? `-${Math.round((1 - effectivePriceNum/basePriceNum)*100)}%` : `+${Math.round((effectivePriceNum/basePriceNum - 1)*100)}%`,
+                                    title: effectivePriceNum < basePriceNum ? "Chegirma" : "Ustama"
+                                } : null);
+                                const isIncrease = badgeObj?.type === "increase";
                                 return (
                                     <motion.div
                                         key={venue.id}
@@ -660,21 +673,20 @@ export default function VenuesClient() {
                                                     gap: "6px",
                                                     alignItems: "flex-start",
                                                 }}>
-                                                    {venue.active_discount && (
+                                                    {badgeObj && (
                                                         <span style={{
-                                                            background: venue.active_discount.type === "increase"
+                                                            background: isIncrease
                                                                 ? "rgba(239,68,68,0.85)"
                                                                 : "rgba(57,255,20,0.85)",
-                                                            color: venue.active_discount.type === "increase" ? "#fff" : "#052b04",
+                                                            color: isIncrease ? "#fff" : "#052b04",
                                                             fontSize: "10px",
                                                             fontWeight: 800,
                                                             padding: "3px 9px",
                                                             borderRadius: "6px",
                                                             boxShadow: "0 2px 8px rgba(0,0,0,0.35)",
                                                         }}>
-                                                            {venue.active_discount.type === "increase" ? "🔺" : "🔥"}{" "}
-                                                            {venue.active_discount.type === "increase" ? "+" : "-"}
-                                                            {Number(venue.active_discount.percent)}%
+                                                            {isIncrease ? "🔺" : "🔥"}{" "}
+                                                            {badgeObj.label}
                                                         </span>
                                                     )}
                                                     {/* Rating asosida — real ma'lumot, "Mashhur" belgisi */}
@@ -776,38 +788,42 @@ export default function VenuesClient() {
                                                     justifyContent: "space-between"
                                                 }}>
                                                     <div>
-                                                        {venue.active_discount || (venue.discounted_price && Number(venue.discounted_price) < Number(venue.price)) ? (
+                                                        {hasPriceDiff || badgeObj ? (
                                                             <div style={{display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap"}}>
-                                                                <span style={{
-                                                                    fontSize: "11px",
-                                                                    color: "#ef4444",
-                                                                    textDecoration: "line-through",
-                                                                    fontWeight: 600
-                                                                }}>
-                                                                    {Number(venue.price).toLocaleString()} so&apos;m
-                                                                </span>
+                                                                {hasPriceDiff && (
+                                                                    <span style={{
+                                                                        fontSize: "11px",
+                                                                        color: isIncrease ? "#f87171" : "#ef4444",
+                                                                        textDecoration: "line-through",
+                                                                        fontWeight: 600
+                                                                    }}>
+                                                                        {basePriceNum.toLocaleString()} so&apos;m
+                                                                    </span>
+                                                                )}
                                                                 <span style={{
                                                                     fontSize: "14px",
                                                                     fontWeight: 900,
-                                                                    color: "#39FF14",
+                                                                    color: isIncrease ? "#f87171" : "#39FF14",
                                                                 }}>
-                                                                    {Number(venue.discounted_price || venue.price).toLocaleString()} <span style={{fontSize: "10px", color: "rgba(255,255,255,0.4)", fontWeight: 400}}>so&apos;m/soat</span>
+                                                                    {effectivePriceNum.toLocaleString()} <span style={{fontSize: "10px", color: "rgba(255,255,255,0.4)", fontWeight: 400}}>so&apos;m/soat</span>
                                                                 </span>
-                                                                <span style={{
-                                                                    background: "rgba(255,59,48,0.2)",
-                                                                    border: "1px solid rgba(255,59,48,0.4)",
-                                                                    color: "#ff453a",
-                                                                    fontSize: "10px",
-                                                                    fontWeight: 800,
-                                                                    padding: "2px 6px",
-                                                                    borderRadius: "6px"
-                                                                }}>
-                                                                    🔥 -{venue.active_discount?.percent || venue.discount_percent || 20}%
-                                                                </span>
+                                                                {badgeObj && (
+                                                                    <span style={{
+                                                                        background: isIncrease ? "rgba(239,68,68,0.2)" : "rgba(255,59,48,0.2)",
+                                                                        border: `1px solid ${isIncrease ? "rgba(239,68,68,0.4)" : "rgba(255,59,48,0.4)"}`,
+                                                                        color: isIncrease ? "#f87171" : "#ff453a",
+                                                                        fontSize: "10px",
+                                                                        fontWeight: 800,
+                                                                        padding: "2px 6px",
+                                                                        borderRadius: "6px"
+                                                                    }}>
+                                                                        {isIncrease ? "🔺" : "🔥"} {badgeObj.label}
+                                                                    </span>
+                                                                )}
                                                             </div>
                                                         ) : (
                                                             <div style={{fontSize: "14px", fontWeight: 800, color: "#39FF14"}}>
-                                                                {Number(venue.price).toLocaleString()} <span style={{
+                                                                {basePriceNum.toLocaleString()} <span style={{
                                                                 fontSize: "10px",
                                                                 color: "rgba(255,255,255,0.3)",
                                                                 fontWeight: 400

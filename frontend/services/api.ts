@@ -31,6 +31,14 @@ export interface VenueImage {
     image: string;
 }
 
+export interface PriceBadge {
+    source: "admin" | "weekend_rule" | "evening";
+    type: "increase" | "decrease";
+    percent: string;   // "25"
+    label: string;     // "+25%" yoki "-20%"
+    title: string;
+}
+
 export interface ActiveDiscount {
     id: number;
     title: string;
@@ -47,7 +55,7 @@ export interface Venue {
     address: string;
     latitude: number | null;
     longitude: number | null;
-    price: string;           // DecimalField → string (standart, chegirmasiz narx)
+    price: string;           // DecimalField → string (standart, hech qanday qoidasiz asl narx)
     description: string;
     start_time: string;      // "09:00:00"
     end_time: string;        // "23:00:00"
@@ -69,10 +77,38 @@ export interface Venue {
     has_equipment_rental?: boolean;
     /** Admin panelidan (Chegirmalar bo'limidan) hozir amal qilayotgan chegirma/ustama, bo'lmasa null */
     active_discount?: ActiveDiscount | null;
-    /** active_discount hisobga olingan holdagi bir soatlik yakuniy narx (string, masalan "70000.00") */
+    /** active_discount hisobga olingan holdagi bir soatlik narx (string, masalan "70000.00") */
     discounted_price?: string;
+    /**
+     * BUGUNGI kun uchun YAGONA HAQIQIY narx — admin chegirmasi VA hafta oxiri
+     * (Bilyard/Futbol +25%) qoidasi ALLAQACHON hisobga olingan. Arenalar ro'yxati
+     * kartochkasida FAQAT shu maydon ko'rsatilishi kerak (venue.price yoki
+     * discounted_price emas!) — shunda ro'yxat va ichki sahifa har doim bir xil
+     * raqamni ko'rsatadi.
+     */
+    today_price?: string;
+    /** today_price ga tegishli belgi ("+25%", "-20%" va h.k.), bo'lmasa null */
+    today_badge?: PriceBadge | null;
     discount_percent?: number;
     discount_start_time?: string;
+}
+
+/** Bitta standart (1 soatlik) bron slotining backend hisoblagan narxi va belgisi */
+export interface VenueSlot {
+    start: string;   // "16:00"
+    end: string;     // "17:00"
+    price: string;   // "100000.00"
+    badge: PriceBadge | null;
+    booked: boolean;
+}
+
+export interface VenueSlotsResponse {
+    booked: { start: string; end: string }[];
+    slots: VenueSlot[];
+    day_price: string | null;
+    day_badge: PriceBadge | null;
+    custom_price?: string;
+    custom_price_error?: string;
 }
 
 export interface Booking {
@@ -407,11 +443,22 @@ export const venuesAPI = {
     /** Maydonni o'chirish */
     delete: (id: number) =>
         apiFetch<null>(`/venues/${id}`, {method: "DELETE"}),
-    /** Band vaqtlarini olish */
-    getBookedSlots: (venueId: number, date: string) =>
-        apiFetch<{ booked: { start: string; end: string }[] }>(
-            `/venues/${venueId}/booked-slots?date=${date}`
-        ),
+    /**
+     * Band vaqtlarini VA har bir standart slotning backend hisoblagan narxi/belgisini oladi.
+     * customStart/customEnd berilsa, "erkin vaqt" oralig'ining aniq narxini ham qaytaradi
+     * (custom_price) — frontend HECH QACHON narxni o'zi hisoblamaydi, faqat shu javobni
+     * ko'rsatadi. Shu tufayli ro'yxat sahifasi va ichki sahifa har doim mos keladi.
+     */
+    getBookedSlots: (venueId: number, date: string, customStart?: string, customEnd?: string) => {
+        const params = new URLSearchParams({date});
+        if (customStart && customEnd) {
+            params.set("start", customStart);
+            params.set("end", customEnd);
+        }
+        return apiFetch<VenueSlotsResponse>(
+            `/venues/${venueId}/booked-slots?${params.toString()}`
+        );
+    },
     myStats: () =>
         apiFetch<VenueStatsResponse>("/venues/my-stats"),
 
@@ -460,6 +507,12 @@ export const reviewsAPI = {
     create: (data: { venue: number; rating: number; comment: string }) =>
         apiFetch<Review>("/reviews", {
             method: "POST",
+            body: JSON.stringify(data),
+        }),
+    /** Sharhni tahrirlash (update/patch) */
+    update: (id: number, data: { rating?: number; comment?: string }) =>
+        apiFetch<Review>(`/reviews/${id}`, {
+            method: "PATCH",
             body: JSON.stringify(data),
         }),
     /** Sharhni o'chirish */

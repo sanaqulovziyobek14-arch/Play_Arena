@@ -274,40 +274,61 @@ export default function VenueSection() {
                                             </div>
                                             {/* PRICE & DISCOUNT DISPLAY */}
                                             <div style={{display: "flex", alignItems: "center", flexWrap: "wrap", gap: "6px"}}>
-                                                {venue.active_discount || (venue.discounted_price && Number(venue.discounted_price) < Number(venue.price)) ? (
-                                                    <>
-                                                        <span style={{
-                                                            fontSize: "11px",
-                                                            color: "#ef4444",
-                                                            textDecoration: "line-through",
-                                                            fontWeight: 600
-                                                        }}>
-                                                            {Number(venue.price).toLocaleString()} so&apos;m
-                                                        </span>
-                                                        <span style={{fontSize: "14px", fontWeight: 900, color: "#39FF14"}}>
-                                                            {Number(venue.discounted_price || venue.price).toLocaleString()} <span style={{fontSize: "10px", color: "rgba(255,255,255,0.4)", fontWeight: 400}}>so&apos;m/soat</span>
-                                                        </span>
-                                                        <span style={{
-                                                            background: "rgba(255,59,48,0.2)",
-                                                            border: "1px solid rgba(255,59,48,0.4)",
-                                                            color: "#ff453a",
+                                                {(() => {
+                                                    const baseP = Number(venue.price || 0);
+                                                    const effP = Number(venue.today_price || venue.discounted_price || baseP);
+                                                    const hasDiff = effP !== baseP;
+                                                    const badge = venue.today_badge || (venue.active_discount ? {
+                                                        type: venue.active_discount.type,
+                                                        label: `${venue.active_discount.type === "increase" ? "+" : "-"}${venue.active_discount.percent}%`
+                                                    } : hasDiff ? {
+                                                        type: effP > baseP ? "increase" : "decrease",
+                                                        label: effP < baseP ? `-${Math.round((1 - effP/baseP)*100)}%` : `+${Math.round((effP/baseP - 1)*100)}%`
+                                                    } : null);
+                                                    const isInc = badge?.type === "increase";
+
+                                                    if (hasDiff || badge) {
+                                                        return (
+                                                            <>
+                                                                {hasDiff && (
+                                                                    <span style={{
+                                                                        fontSize: "11px",
+                                                                        color: isInc ? "#f87171" : "#ef4444",
+                                                                        textDecoration: "line-through",
+                                                                        fontWeight: 600
+                                                                    }}>
+                                                                        {baseP.toLocaleString()} so&apos;m
+                                                                    </span>
+                                                                )}
+                                                                <span style={{fontSize: "14px", fontWeight: 900, color: isInc ? "#f87171" : "#39FF14"}}>
+                                                                    {effP.toLocaleString()} <span style={{fontSize: "10px", color: "rgba(255,255,255,0.4)", fontWeight: 400}}>so&apos;m/soat</span>
+                                                                </span>
+                                                                {badge && (
+                                                                    <span style={{
+                                                                        background: isInc ? "rgba(239,68,68,0.2)" : "rgba(255,59,48,0.2)",
+                                                                        border: `1px solid ${isInc ? "rgba(239,68,68,0.4)" : "rgba(255,59,48,0.4)"}`,
+                                                                        color: isInc ? "#f87171" : "#ff453a",
+                                                                        fontSize: "10px",
+                                                                        fontWeight: 800,
+                                                                        padding: "2px 6px",
+                                                                        borderRadius: "6px"
+                                                                    }}>
+                                                                        {isInc ? "🔺" : "🔥"} {badge.label}
+                                                                    </span>
+                                                                )}
+                                                            </>
+                                                        );
+                                                    }
+                                                    return (
+                                                        <div style={{fontSize: "14px", fontWeight: 800, color: "#39FF14"}}>
+                                                            {baseP.toLocaleString()} <span style={{
                                                             fontSize: "10px",
-                                                            fontWeight: 800,
-                                                            padding: "2px 6px",
-                                                            borderRadius: "6px"
-                                                        }}>
-                                                            🔥 -{venue.active_discount?.percent || venue.discount_percent || 20}%
-                                                        </span>
-                                                    </>
-                                                ) : (
-                                                    <div style={{fontSize: "14px", fontWeight: 800, color: "#39FF14"}}>
-                                                        {Number(venue.price).toLocaleString()} <span style={{
-                                                        fontSize: "10px",
-                                                        color: "rgba(255,255,255,0.3)",
-                                                        fontWeight: 400
-                                                    }}>so&apos;m/soat</span>
-                                                    </div>
-                                                )}
+                                                            color: "rgba(255,255,255,0.3)",
+                                                            fontWeight: 400
+                                                        }}>so&apos;m/soat</span>
+                                                        </div>
+                                                    );
+                                                })()}
                                             </div>
                                         </div>
                                     </div>

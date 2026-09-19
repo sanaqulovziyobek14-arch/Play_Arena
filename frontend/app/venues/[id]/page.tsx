@@ -9,7 +9,7 @@ import {useRouter} from "next/navigation";
 import Navbar from "@/components/navbar/Navbar";
 import Footer from "@/components/footer/Footer";
 import PaymentModal from "@/components/PaymentModal";
-import {venuesAPI, bookingsAPI, paymentsAPI, reviewsAPI, getAccessToken, type Venue, type Review} from "@/services/api";
+import {venuesAPI, bookingsAPI, paymentsAPI, reviewsAPI, getAccessToken, getCurrentUserId, getUserRole, type Venue, type Review, type VenueSlot, type PriceBadge} from "@/services/api";
 
 
 const DAY_NAMES = ["Yakshanba", "Dushanba", "Seshanba", "Chorshanba", "Payshanba", "Juma", "Shanba"];
@@ -28,24 +28,6 @@ function generateDates(count = 7) {
     });
 }
 
-function generateSlots(startTime: string, endTime: string) {
-    const slots: string[] = [];
-    let [sh, sm] = startTime.split(":").map(Number);
-    const [eh] = endTime.split(":").map(Number);
-    while (sh < eh) {
-        slots.push(`${String(sh).padStart(2, "0")}:${String(sm).padStart(2, "0")}`);
-        sh += 1;
-    }
-    return slots;
-}
-
-/** "08:00" -> "08:00 - 09:00" ko'rinishida chiroyli oraliq yozuvi */
-function slotRangeLabel(start: string) {
-    const [h, m] = start.split(":").map(Number);
-    const endH = (h + 1) % 24;
-    return `${start} - ${String(endH).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-}
-
 /** "2026-08-01" -> "1 avg" ko'rinishida qisqa sana */
 function formatShortDate(iso?: string) {
     if (!iso) return "";
@@ -53,55 +35,6 @@ function formatShortDate(iso?: string) {
     if (parts.length !== 3) return iso;
     const [, m, d] = parts;
     return `${d} ${MONTH_NAMES[m - 1]}`;
-}
-
-/** 20:00 dan keyingi soatlar (20% chegirma) va Bilyard uchun Shanba/Yakshanba (25% narx oshishi) */
-function calculateRangePrice(basePrice: number, startT: string, endT: string, dateIso?: string, sportName?: string) {
-    if (!startT || !endT) return basePrice;
-
-    let isWeekend = false;
-    let isBilyard = false;
-
-    if (dateIso) {
-        const parts = dateIso.split("-").map(Number);
-        if (parts.length === 3) {
-            const d = new Date(parts[0], parts[1] - 1, parts[2]);
-            const dayOfWeek = d.getDay(); // 0 = Yakshanba, 6 = Shanba
-            isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-        }
-    }
-
-
-    if (sportName) {
-        const s = sportName.toLowerCase();
-        isBilyard = s.includes("bilyard") || s.includes("billiard");
-    }
-
-
-    const [sh, sm] = startT.split(":").map(Number);
-    let [eh, em] = endT.split(":").map(Number);
-    if (eh < sh || (eh === sh && (em || 0) <= (sm || 0))) eh += 24;
-
-    const startMins = sh * 60 + (sm || 0);
-    const endMins = eh * 60 + (em || 0);
-
-    // 1-HOLAT: Bilyard va Shanba/Yakshanba -> 25% narx oshadi va 20:00 chegirmasi UMUMAN TA'SIR QILMAYDI
-    if (isBilyard && isWeekend) {
-        const weekendPrice = basePrice * 1.25;
-        const durationHours = (endMins - startMins) / 60;
-        return Math.round(durationHours * weekendPrice);
-    }
-
-    // 2-HOLAT: Barcha boshqa holatlar -> 20:00 dan keyin 20% chegirma
-    const boundaryMins = 20 * 60; // 20:00
-
-    const stdMins = Math.max(0, Math.min(endMins, boundaryMins) - Math.min(startMins, boundaryMins));
-    const discMins = Math.max(0, Math.max(endMins, boundaryMins) - Math.max(startMins, boundaryMins));
-
-    const stdHours = stdMins / 60;
-    const discHours = discMins / 60;
-
-    return Math.round(stdHours * basePrice + discHours * basePrice * 0.8);
 }
 
 
@@ -153,8 +86,12 @@ export default function VenueDetailPage(props: PageProps) {
     const [activeImage, setActiveImage] = useState(0);
     const [dates] = useState(() => generateDates(7));
     const [activeDate, setActiveDate] = useState(0);
-    const [slots, setSlots] = useState<string[]>([]);
-    const [bookedSlots, setBookedSlots] = useState<string[]>([]);
+    // YAGONA HAQIQAT MANBAI: bu ma'lumotlar backend'dan keladi (narx, belgi, band holati).
+    // Frontend bu yerda HECH QANDAY narx qoidasini o'zi qayta hisoblamaydi.
+    const [slotsData, setSlotsData] = useState<VenueSlot[]>([]);
+    const [slotsLoading, setSlotsLoading] = useState(false);
+    const [dayPrice, setDayPrice] = useState<number | null>(null);
+    const [dayBadge, setDayBadge] = useState<PriceBadge | null>(null);
     const [activeSlot, setActiveSlot] = useState<number | null>(null);
     const [booking, setBooking] = useState(false);
     const [bookingId, setBookingId] = useState<number | null>(null);
@@ -164,15 +101,21 @@ export default function VenueDetailPage(props: PageProps) {
     const [customStart, setCustomStart] = useState("");
     const [customEnd, setCustomEnd] = useState("");
     const [customError, setCustomError] = useState("");
+    const [customPrice, setCustomPrice] = useState<number | null>(null);
+    const [customPriceLoading, setCustomPriceLoading] = useState(false);
 
     // Reviews & 5-Star Interactive Rating State
     const [reviews, setReviews] = useState<Review[]>([]);
     const [userRating, setUserRating] = useState<number>(5);
     const [hoverRating, setHoverRating] = useState<number>(0);
     const [userComment, setUserComment] = useState<string>("");
+    const [editingReviewId, setEditingReviewId] = useState<number | null>(null);
     const [reviewSubmitting, setReviewSubmitting] = useState<boolean>(false);
     const [reviewError, setReviewError] = useState<string>("");
     const [reviewSuccess, setReviewSuccess] = useState<string>("");
+
+    const currentUserId = getCurrentUserId();
+    const userRole = getUserRole();
 
     const loadReviews = useCallback(async () => {
         if (!cleanId) return;
@@ -187,6 +130,40 @@ export default function VenueDetailPage(props: PageProps) {
     useEffect(() => {
         loadReviews();
     }, [loadReviews]);
+
+    const handleStartEdit = (rev: Review) => {
+        setEditingReviewId(rev.id);
+        setUserRating(rev.rating);
+        setUserComment(rev.comment);
+        setReviewError("");
+        setReviewSuccess("");
+        document.getElementById("review-form-section")?.scrollIntoView({ behavior: "smooth" });
+    };
+
+    const handleCancelEdit = () => {
+        setEditingReviewId(null);
+        setUserRating(5);
+        setUserComment("");
+        setReviewError("");
+        setReviewSuccess("");
+    };
+
+    const handleDeleteReview = async (reviewId: number) => {
+        if (!cleanId) return;
+        if (!confirm("Ushbu sharhni o'chirmoqchimisiz?")) return;
+        try {
+            await reviewsAPI.delete(reviewId);
+            if (editingReviewId === reviewId) {
+                handleCancelEdit();
+            }
+            setReviewSuccess("Sharh muvaffaqiyatli o'chirildi.");
+            await loadReviews();
+            const updatedVenue = await venuesAPI.getById(cleanId);
+            setVenue(updatedVenue);
+        } catch (err: any) {
+            alert(err?.message || "Sharhni o'chirishda xatolik yuz berdi.");
+        }
+    };
 
     const handleSubmitReview = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -206,13 +183,23 @@ export default function VenueDetailPage(props: PageProps) {
         setReviewSuccess("");
 
         try {
-            await reviewsAPI.create({
-                venue: cleanId,
-                rating: userRating,
-                comment: userComment,
-            });
-            setReviewSuccess("Sharhingiz va bahoingiz muvaffaqiyatli saqlandi! Rahmat! 🌟");
+            if (editingReviewId) {
+                await reviewsAPI.update(editingReviewId, {
+                    rating: userRating,
+                    comment: userComment,
+                });
+                setReviewSuccess("Sharhingiz muvaffaqiyatli tahrirlandi! 🌟");
+                setEditingReviewId(null);
+            } else {
+                await reviewsAPI.create({
+                    venue: cleanId,
+                    rating: userRating,
+                    comment: userComment,
+                });
+                setReviewSuccess("Sharhingiz va bahoingiz muvaffaqiyatli saqlandi! Rahmat! 🌟");
+            }
             setUserComment("");
+            setUserRating(5);
             await loadReviews();
             const updatedVenue = await venuesAPI.getById(cleanId);
             setVenue(updatedVenue);
@@ -232,8 +219,6 @@ export default function VenueDetailPage(props: PageProps) {
         venuesAPI.getById(cleanId)
             .then(v => {
                 setVenue(v);
-                const standardSlots = generateSlots(v.start_time || "08:00", v.end_time || "23:00");
-                setSlots(standardSlots);
 
                 const savedVenueId = localStorage.getItem("pending_venue_id");
                 if (savedVenueId && parseInt(savedVenueId, 10) === cleanId) {
@@ -265,15 +250,44 @@ export default function VenueDetailPage(props: PageProps) {
 
     useEffect(() => {
         if (!cleanId || !dates[activeDate]) return;
+        setSlotsLoading(true);
+        setActiveSlot(null);
         venuesAPI.getBookedSlots(cleanId, dates[activeDate].iso)
-            .then(res => setBookedSlots((res.booked || []).map((b: any) => typeof b === "object" ? b.start : b)))
-            .catch(() => setBookedSlots([]));
+            .then(res => {
+                setSlotsData(res.slots || []);
+                setDayPrice(res.day_price !== undefined && res.day_price !== null ? Number(res.day_price) : null);
+                setDayBadge(res.day_badge || null);
+            })
+            .catch(() => {
+                setSlotsData([]);
+                setDayPrice(null);
+                setDayBadge(null);
+            })
+            .finally(() => setSlotsLoading(false));
     }, [cleanId, activeDate, dates]);
 
-    const isBooked = useCallback((time: string) => {
-        const t = `${time}:00`;
-        return bookedSlots.some(b => b === t || b?.startsWith(time));
-    }, [bookedSlots]);
+    // "Erkin vaqt" (custom range) rejimi uchun — aniq narxni backend'dan so'raymiz
+    // (bu yerda HECH QANDAY narx qoidasi frontendda qayta hisoblanmaydi).
+    useEffect(() => {
+        if (!customMode || !cleanId || !customStart || !customEnd || !dates[activeDate]) {
+            setCustomPrice(null);
+            return;
+        }
+        const [sh, sm] = customStart.split(":").map(Number);
+        const [eh, em] = customEnd.split(":").map(Number);
+        if (isNaN(sh) || isNaN(eh) || sh * 60 + sm >= eh * 60 + em) {
+            setCustomPrice(null);
+            return;
+        }
+        setCustomPriceLoading(true);
+        const handle = setTimeout(() => {
+            venuesAPI.getBookedSlots(cleanId, dates[activeDate].iso, customStart, customEnd)
+                .then(res => setCustomPrice(res.custom_price ? Number(res.custom_price) : null))
+                .catch(() => setCustomPrice(null))
+                .finally(() => setCustomPriceLoading(false));
+        }, 400);
+        return () => clearTimeout(handle);
+    }, [customMode, cleanId, customStart, customEnd, activeDate, dates]);
 
     const isPastToday = useCallback((time: string) => {
         if (activeDate !== 0) return false;
@@ -291,14 +305,13 @@ export default function VenueDetailPage(props: PageProps) {
             start = startT;
             end = endT;
         } else {
-            if (activeSlot === null) {
+            if (activeSlot === null || !slotsData[activeSlot]) {
                 alert("Iltimos, o'zingizga qulay vaqtni tanlang!");
                 return;
             }
-            const t = slots[activeSlot];
-            const h = parseInt(t.split(":")[0]);
-            start = `${t}:00`;
-            end = `${String(h + 1).padStart(2, "0")}:00:00`;
+            const slot = slotsData[activeSlot];
+            start = `${slot.start}:00`;
+            end = `${slot.end}:00`;
         }
 
         if (!getAccessToken()) {
@@ -385,32 +398,31 @@ export default function VenueDetailPage(props: PageProps) {
     );
 
     const standardPrice = Number(venue.price);
-    // Admin panelidan (Chegirmalar bo'limidan) qo'yilgan chegirma/ustama hisobga olingan
-    // holdagi "samarali" narx — barcha keyingi hisob-kitoblar (soatlik narxlar, jami summa)
-    // shu narx asosida amalga oshadi, backenddagi calculate_booking_price bilan bir xil mantiqda.
-    const price = venue.discounted_price !== undefined && venue.discounted_price !== null
-        ? Number(venue.discounted_price)
-        : standardPrice;
-    const hasAdminDiscount = Boolean(venue.active_discount) && price !== standardPrice;
     const currentSportName = venue?.sport_name || (typeof venue?.sport === "object" ? (venue.sport as any)?.name : "") || venue?.name || "";
+
+    // YAGONA HAQIQAT MANBAI: tanlangan sana uchun "kunlik" narx backend'dan (dayPrice/dayBadge)
+    // keladi — admin chegirmasi VA hafta oxiri (Bilyard/Futbol +25%) qoidasi allaqachon
+    // hisobga olingan. Bu — ro'yxat sahifasidagi (VenuesClient) today_price bilan AYNAN
+    // bir xil backend funksiyasidan chiqadi, shuning uchun ikkalasi hech qachon farq qilmaydi.
+    const price = dayPrice !== null ? dayPrice : standardPrice;
 
     let currentSelectedPrice = price;
     let selectedStart = "";
     let selectedEnd = "";
+    let selectedBadge: PriceBadge | null = dayBadge;
 
-    const activeDateIso = dates[activeDate]?.iso;
-
-
-    if (!customMode && activeSlot !== null && slots[activeSlot]) {
-        const slotStartStr = slots[activeSlot];
-        const startH = parseInt(slotStartStr.split(":")[0]);
-        selectedStart = `${slotStartStr}:00`;
-        selectedEnd = `${String(startH + 1).padStart(2, "0")}:00:00`;
-        currentSelectedPrice = calculateRangePrice(price, slotStartStr, `${String(startH + 1).padStart(2, "0")}:00`, activeDateIso, currentSportName);
+    if (!customMode && activeSlot !== null && slotsData[activeSlot]) {
+        const slot = slotsData[activeSlot];
+        selectedStart = `${slot.start}:00`;
+        selectedEnd = `${slot.end}:00`;
+        currentSelectedPrice = Number(slot.price);
+        selectedBadge = slot.badge;
     } else if (customMode && customStart && customEnd) {
         selectedStart = customStart;
         selectedEnd = customEnd;
-        currentSelectedPrice = calculateRangePrice(price, customStart, customEnd, activeDateIso, currentSportName);
+        if (customPrice !== null) {
+            currentSelectedPrice = customPrice;
+        }
     }
 
 
@@ -684,48 +696,50 @@ export default function VenueDetailPage(props: PageProps) {
                                     </span>
                                 </div>
                             )}
-                            {currentSelectedPrice < price ? (
-                                <div>
-                                    <div style={{
-                                        fontSize: "12px",
-                                        color: "#FF3B30",
-                                        fontWeight: 700,
-                                        marginBottom: "4px"
+
+                            {/*
+                                MUHIM: bu yerdagi narx VA belgi (selectedBadge) to'liq backend'dan keladi
+                                (dayPrice/dayBadge yoki tanlangan slotning o'z narxi/belgisi orqali).
+                                Frontend hech qanday hafta oxiri/kechki chegirma qoidasini o'zi
+                                hisoblamaydi — shu bilan ro'yxat sahifasi bilan har doim mos keladi.
+                            */}
+                            {selectedBadge && (
+                                <div style={{
+                                    fontSize: "12px",
+                                    color: selectedBadge.type === "increase" ? "#FF3B30" : "#39FF14",
+                                    fontWeight: 700,
+                                    marginBottom: "4px",
+                                }}>
+                                    {selectedBadge.type === "increase" ? "⚡" : "🔥"} {selectedBadge.title} ({selectedBadge.label})
+                                </div>
+                            )}
+                            {slotsLoading ? (
+                                <div style={{fontSize: "13px", color: "rgba(255,255,255,0.35)"}}>Narx hisoblanmoqda...</div>
+                            ) : currentSelectedPrice !== standardPrice && currentSelectedPrice > 0 ? (
+                                <div style={{display: "flex", alignItems: "baseline", gap: "10px"}}>
+                                    <span style={{
+                                        fontSize: "15px",
+                                        color: "rgba(255,255,255,0.4)",
+                                        textDecoration: "line-through"
                                     }}>
-                                        🔥 20:00 dan keyingi vaqt uchun qo'shimcha chegirma!
-                                    </div>
-                                    <div style={{display: "flex", alignItems: "baseline", gap: "10px"}}>
-                                        <span style={{
-                                            fontSize: "15px",
-                                            color: "rgba(255,255,255,0.4)",
-                                            textDecoration: "line-through"
-                                        }}>
-                                            {price.toLocaleString()} so'm
-                                        </span>
-                                        <span style={{fontSize: "24px", fontWeight: 800, color: "#39FF14"}}>
-                                            {currentSelectedPrice.toLocaleString()} so'm
-                                        </span>
-                                    </div>
+                                        {standardPrice.toLocaleString()} so'm
+                                    </span>
+                                    <span style={{
+                                        fontSize: "24px",
+                                        fontWeight: 800,
+                                        color: selectedBadge?.type === "increase" ? "#f87171" : "#39FF14"
+                                    }}>
+                                        {currentSelectedPrice.toLocaleString()} so'm
+                                    </span>
                                 </div>
                             ) : (
                                 <h3 style={{
                                     fontSize: "22px",
                                     fontWeight: 800,
-                                    color: venue.active_discount?.type === "increase" ? "#f87171" : "#39FF14",
+                                    color: "#39FF14",
                                     marginBottom: "0"
                                 }}>
-                                    {hasAdminDiscount && (
-                                        <span style={{
-                                            fontSize: "14px",
-                                            color: "rgba(255,255,255,0.35)",
-                                            textDecoration: "line-through",
-                                            fontWeight: 600,
-                                            marginRight: "8px",
-                                        }}>
-                                            {standardPrice.toLocaleString()}
-                                        </span>
-                                    )}
-                                    {price.toLocaleString()} so'm <span style={{
+                                    {currentSelectedPrice.toLocaleString()} so'm <span style={{
                                     fontSize: "13px",
                                     color: "rgba(255,255,255,0.4)",
                                     fontWeight: 400
@@ -733,6 +747,7 @@ export default function VenueDetailPage(props: PageProps) {
                                 </h3>
                             )}
                         </div>
+
 
                         <label style={{
                             fontSize: "12px",
@@ -813,31 +828,25 @@ export default function VenueDetailPage(props: PageProps) {
                                     overflowY: "auto",
                                     marginBottom: "24px"
                                 }}>
-                                    {slots.map((slot, idx) => {
-                                        const booked = isBooked(slot) || isPastToday(slot);
+                                    {slotsLoading ? (
+                                        <div style={{
+                                            padding: "20px",
+                                            textAlign: "center",
+                                            color: "rgba(255,255,255,0.3)",
+                                            fontSize: "12.5px"
+                                        }}>Yuklanmoqda...</div>
+                                    ) : slotsData.length === 0 ? (
+                                        <div style={{
+                                            padding: "20px",
+                                            textAlign: "center",
+                                            color: "rgba(255,255,255,0.3)",
+                                            fontSize: "12.5px"
+                                        }}>Bu sana uchun mavjud soatlar topilmadi</div>
+                                    ) : slotsData.map((slot, idx) => {
+                                        const booked = slot.booked || isPastToday(slot.start);
                                         const selected = activeSlot === idx;
-                                        const hour = parseInt(slot.split(":")[0]);
-
-                                        let isWeekendSlot = false;
-                                        if (dates[activeDate]?.iso) {
-                                            const parts = dates[activeDate].iso.split("-").map(Number);
-                                            if (parts.length === 3) {
-                                                const d = new Date(parts[0], parts[1] - 1, parts[2]);
-                                                isWeekendSlot = d.getDay() === 0 || d.getDay() === 6;
-                                            }
-                                        }
-                                        const sportNameLower = (currentSportName || "").toLowerCase();
-                                        const isBilyardSlot = sportNameLower.includes("bilyard") || sportNameLower.includes("billiard");
-
-                                        const isBilyardWeekend = isBilyardSlot && isWeekendSlot;
-                                        const hasDiscount = !isBilyardWeekend && hour >= 20;
-
-                                        let slotPrice = price;
-                                        if (isBilyardWeekend) {
-                                            slotPrice = Math.round(price * 1.25);
-                                        } else if (hasDiscount) {
-                                            slotPrice = Math.round(price * 0.8);
-                                        }
+                                        const slotPriceNum = Number(slot.price);
+                                        const badge = slot.badge;
 
                                         return (
                                             <button key={idx} disabled={booked} onClick={() => setActiveSlot(idx)}
@@ -855,32 +864,21 @@ export default function VenueDetailPage(props: PageProps) {
                                                         alignItems: "center",
                                                         justifyContent: "space-between"
                                                     }}>
-                                                <span>{slotRangeLabel(slot)}</span>
-                                                {isBilyardWeekend ? (
+                                                <span>{slot.start} - {slot.end}</span>
+                                                {badge ? (
                                                     <span style={{
                                                         fontSize: "10px",
-                                                        background: "rgba(255,149,0,0.2)",
-                                                        color: "#FF9500",
+                                                        background: badge.type === "increase" ? "rgba(255,149,0,0.2)" : "rgba(255,59,48,0.2)",
+                                                        color: badge.type === "increase" ? "#FF9500" : "#FF3B30",
                                                         padding: "2px 6px",
                                                         borderRadius: "6px",
                                                         fontWeight: 700
                                                     }}>
-                                                        ⚡ +25% ({slotPrice.toLocaleString()} so'm)
-                                                    </span>
-                                                ) : hasDiscount ? (
-                                                    <span style={{
-                                                        fontSize: "10px",
-                                                        background: "rgba(255,59,48,0.2)",
-                                                        color: "#FF3B30",
-                                                        padding: "2px 6px",
-                                                        borderRadius: "6px",
-                                                        fontWeight: 700
-                                                    }}>
-                                                        🔥 -20% ({slotPrice.toLocaleString()} so'm)
+                                                        {badge.type === "increase" ? "⚡" : "🔥"} {badge.label} ({slotPriceNum.toLocaleString()} so'm)
                                                     </span>
                                                 ) : (
                                                     <span style={{fontSize: "10.5px", color: "rgba(255,255,255,0.4)"}}>
-                                                        {slotPrice.toLocaleString()} so'm
+                                                        {slotPriceNum.toLocaleString()} so'm
                                                     </span>
                                                 )}
                                             </button>
@@ -938,6 +936,26 @@ export default function VenueDetailPage(props: PageProps) {
                                            }}/>
                                 </div>
                                 {customError && <p style={{color: "#ef4444", fontSize: "12px"}}>{customError}</p>}
+                                {customMode && customStart && customEnd && (
+                                    <div style={{
+                                        padding: "10px 12px",
+                                        background: "rgba(57,255,20,0.06)",
+                                        border: "1px solid rgba(57,255,20,0.15)",
+                                        borderRadius: "8px",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "space-between",
+                                    }}>
+                                        <span style={{fontSize: "12px", color: "rgba(255,255,255,0.5)"}}>Jami narx:</span>
+                                        <span style={{fontSize: "16px", fontWeight: 800, color: "#39FF14"}}>
+                                            {customPriceLoading
+                                                ? "Hisoblanmoqda..."
+                                                : customPrice !== null
+                                                    ? `${customPrice.toLocaleString()} so'm`
+                                                    : "—"}
+                                        </span>
+                                    </div>
+                                )}
                                 <button onClick={handleCustomBook} disabled={booking} style={{
                                     width: "100%",
                                     padding: "14px",
@@ -979,14 +997,28 @@ export default function VenueDetailPage(props: PageProps) {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                    {/* SHARH QOLDIRISH FORMASI (5 INTERAKTIV YULDUZCHA) */}
-                    <div className="lg:col-span-5 p-6 sm:p-8 rounded-3xl bg-[#0E1117]/90 border border-[#39FF14]/30 shadow-[0_0_30px_rgba(57,255,20,0.15)] backdrop-blur-2xl flex flex-col justify-between">
+                    {/* SHARH QOLDIRISH / TAHRIRLASH FORMASI */}
+                    <div id="review-form-section" className="lg:col-span-5 p-6 sm:p-8 rounded-3xl bg-[#0E1117]/90 border border-[#39FF14]/30 shadow-[0_0_30px_rgba(57,255,20,0.15)] backdrop-blur-2xl flex flex-col justify-between">
                         <div>
-                            <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
-                                <span className="text-[#39FF14] text-xl">✍️</span> Fikringiz va Bahoingizni Qoldiring
-                            </h3>
+                            <div className="flex items-center justify-between mb-2">
+                                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                    <span className="text-[#39FF14] text-xl">{editingReviewId ? "✏️" : "✍️"}</span>
+                                    {editingReviewId ? "Sharhingizni Tahrirlang" : "Fikringiz va Bahoingizni Qoldiring"}
+                                </h3>
+                                {editingReviewId && (
+                                    <button
+                                        type="button"
+                                        onClick={handleCancelEdit}
+                                        className="text-xs text-rose-400 hover:underline font-bold px-2 py-1 rounded bg-rose-500/10 border border-rose-500/20"
+                                    >
+                                        ✕ Bekor qilish
+                                    </button>
+                                )}
+                            </div>
                             <p className="text-xs text-gray-400 mb-6">
-                                Sizning bahoingiz boshqa foydalanuvchilarga eng yaxshi maydonni tanlashga yordam beradi.
+                                {editingReviewId
+                                    ? "Sharh matni yoki bahoingizni o'zgartirib 'Sharhni Yangilash' tugmasini bosing."
+                                    : "Sizning bahoingiz boshqa foydalanuvchilarga eng yaxshi maydonni tanlashga yordam beradi."}
                             </p>
 
                             {/* 5 TA INTERAKTIV YULDUZCHA (SARIQ RANGDA) */}
@@ -1057,7 +1089,11 @@ export default function VenueDetailPage(props: PageProps) {
                                     disabled={reviewSubmitting}
                                     className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-[#39FF14] via-[#00D26A] to-emerald-500 hover:from-[#32e010] hover:to-emerald-400 text-black font-black text-sm sm:text-base tracking-wide shadow-[0_0_30px_rgba(57,255,20,0.5)] hover:shadow-[0_0_40px_rgba(57,255,20,0.7)] transition duration-200 cursor-pointer flex items-center justify-center gap-2 border border-[#39FF14] active:scale-95"
                                 >
-                                    {reviewSubmitting ? "Saqlanmoqda..." : "⭐ Sharh va Reytingni Saqlash"}
+                                    {reviewSubmitting
+                                        ? "Saqlanmoqda..."
+                                        : editingReviewId
+                                        ? "✏️ Sharhni Yangilash"
+                                        : "⭐ Sharh va Reytingni Saqlash"}
                                 </button>
                             </form>
                         </div>
@@ -1074,46 +1110,79 @@ export default function VenueDetailPage(props: PageProps) {
                                 </p>
                             </div>
                         ) : (
-                            reviews.map((rev) => (
-                                <div
-                                    key={rev.id}
-                                    className="p-5 rounded-2xl bg-[#0E1117]/90 border border-[#39FF14]/20 hover:border-[#39FF14]/50 transition duration-200 space-y-3 shadow-lg"
-                                >
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#39FF14] to-emerald-500 font-black text-black flex items-center justify-center text-sm shadow-md shadow-[#39FF14]/20">
-                                                {(rev.user_username || rev.user_name || "U").charAt(0).toUpperCase()}
+                            reviews.map((rev) => {
+                                const isMyReview = currentUserId !== null && Number(rev.user) === Number(currentUserId);
+                                const isAdminUser = userRole === "admin";
+                                return (
+                                    <div
+                                        key={rev.id}
+                                        className="p-5 rounded-2xl bg-[#0E1117]/90 border border-[#39FF14]/20 hover:border-[#39FF14]/50 transition duration-200 space-y-3 shadow-lg"
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#39FF14] to-emerald-500 font-black text-black flex items-center justify-center text-sm shadow-md shadow-[#39FF14]/20">
+                                                    {(rev.user_username || rev.user_name || "U").charAt(0).toUpperCase()}
+                                                </div>
+                                                <div>
+                                                    <div className="text-sm font-bold text-white flex items-center gap-2">
+                                                        <span>{rev.user_username || rev.user_name || `Foydalanuvchi #${rev.user}`}</span>
+                                                        {isMyReview && (
+                                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#39FF14]/20 text-[#39FF14] border border-[#39FF14]/40">
+                                                                Siz
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="text-[11px] text-gray-500">
+                                                        {new Date(rev.created_at).toLocaleDateString("uz-UZ", {
+                                                            year: "numeric",
+                                                            month: "short",
+                                                            day: "numeric",
+                                                        })}
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <div className="text-sm font-bold text-white">
-                                                    {rev.user_username || rev.user_name || `Foydalanuvchi #${rev.user}`}
+
+                                            <div className="flex items-center gap-3">
+                                                {/* RATINGS STARS BADGE (SARIQ RANGDA) */}
+                                                <div className="flex items-center gap-1 bg-amber-400/10 border border-amber-400/30 px-3 py-1 rounded-full">
+                                                    <span className="text-amber-400 text-sm">
+                                                        {"★".repeat(rev.rating)}{"☆".repeat(5 - rev.rating)}
+                                                    </span>
+                                                    <span className="text-xs font-extrabold text-amber-400 ml-1">
+                                                        {rev.rating}.0
+                                                    </span>
                                                 </div>
-                                                <div className="text-[11px] text-gray-500">
-                                                    {new Date(rev.created_at).toLocaleDateString("uz-UZ", {
-                                                        year: "numeric",
-                                                        month: "short",
-                                                        day: "numeric",
-                                                    })}
-                                                </div>
+
+                                                {/* EDIT / DELETE ACTIONS FOR AUTHOR OR ADMIN */}
+                                                {(isMyReview || isAdminUser) && (
+                                                    <div className="flex items-center gap-1.5 border-l border-white/10 pl-3">
+                                                        {isMyReview && (
+                                                            <button
+                                                                onClick={() => handleStartEdit(rev)}
+                                                                title="Tahrirlash"
+                                                                className="px-2.5 py-1 text-xs font-bold text-[#39FF14] bg-[#39FF14]/10 hover:bg-[#39FF14]/20 border border-[#39FF14]/30 rounded-lg transition active:scale-95 cursor-pointer"
+                                                            >
+                                                                ✏️ Tahrirlash
+                                                            </button>
+                                                        )}
+                                                        <button
+                                                            onClick={() => handleDeleteReview(rev.id)}
+                                                            title="O'chirish"
+                                                            className="px-2.5 py-1 text-xs font-bold text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 rounded-lg transition active:scale-95 cursor-pointer"
+                                                        >
+                                                            🗑️ O'chirish
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
 
-                                        {/* RATINGS STARS BADGE (SARIQ RANGDA) */}
-                                        <div className="flex items-center gap-1 bg-amber-400/10 border border-amber-400/30 px-3 py-1 rounded-full">
-                                            <span className="text-amber-400 text-sm">
-                                                {"★".repeat(rev.rating)}{"☆".repeat(5 - rev.rating)}
-                                            </span>
-                                            <span className="text-xs font-extrabold text-amber-400 ml-1">
-                                                {rev.rating}.0
-                                            </span>
-                                        </div>
+                                        <p className="text-xs sm:text-sm text-gray-300 leading-relaxed italic">
+                                            "{rev.comment}"
+                                        </p>
                                     </div>
-
-                                    <p className="text-xs sm:text-sm text-gray-300 leading-relaxed italic">
-                                        "{rev.comment}"
-                                    </p>
-                                </div>
-                            ))
+                                );
+                            })
                         )}
                     </div>
                 </div>

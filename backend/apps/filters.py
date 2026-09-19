@@ -52,7 +52,10 @@ class BookingFilter(FilterSet):
 class ReviewFilter(FilterSet):
     min_rating = NumberFilter(field_name="rating", lookup_expr="gte")
     max_rating = NumberFilter(field_name="rating", lookup_expr="lte")
+    venue = NumberFilter(field_name="venue_id")
+    user = NumberFilter(field_name="user_id")
 
     class Meta:
         model = Review
-        fields = ["min_rating", "max_rating"]
+        fields = ["venue", "user", "min_rating", "max_rating"]
+

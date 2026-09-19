@@ -40,6 +40,8 @@ from apps.serializers import (
     VenueModelSerializer,
     VenueImageModelSerializer,
     VenueCreateSerializer,
+    calculate_booking_price,
+    get_venue_slot_prices,
 )
 from .filters import BookingFilter, ReviewFilter
 
@@ -512,7 +514,10 @@ class VenueBookedSlotsAPIView(APIView):
                 {"error": "Sana formati noto'g'ri. YYYY-MM-DD formatida yuboring."},
                 status=400,
             )
-        if not Venue.objects.filter(pk=venue_id).exists():
+
+        try:
+            venue = Venue.objects.select_related("sport").get(pk=venue_id)
+        except Venue.DoesNotExist:
             return Response({"error": "Maydon topilmadi"}, status=404)
 
         booked = (
@@ -520,15 +525,40 @@ class VenueBookedSlotsAPIView(APIView):
             .exclude(status=Booking.Status.CANCELED)
             .values("start_time", "end_time")
         )
+        booked_list = [
+            {"start": str(b["start_time"]), "end": str(b["end_time"])} for b in booked
+        ]
+        booked_starts = {b["start"][:5] for b in booked_list}  # "HH:MM:SS" -> "HH:MM"
 
-        return Response(
-            {
-                "booked": [
-                    {"start": str(b["start_time"]), "end": str(b["end_time"])}
-                    for b in booked
-                ]
-            }
-        )
+        # YAGONA HAQIQAT MANBAI: har bir standart soatlik slotning narxi va belgisi
+        # backendning o'zida (calculate_booking_price bilan bir xil funksiyada)
+        # hisoblanadi — frontend buni faqat ko'rsatadi, o'zi qayta hisoblamaydi.
+        slots, day_price, day_badge = get_venue_slot_prices(venue, valid_date)
+        for s in slots:
+            s["booked"] = s["start"] in booked_starts
+
+        response_data = {
+            "booked": booked_list,
+            "slots": slots,
+            "day_price": day_price,
+            "day_badge": day_badge,
+        }
+
+        # "Erkin vaqt" (custom range) rejimi uchun — start/end berilsa, aynan shu
+        # oraliqning yakuniy narxini ham backend hisoblab qaytaradi.
+        start_q = request.GET.get("start")
+        end_q = request.GET.get("end")
+        if start_q and end_q:
+            try:
+                start_t = datetime.datetime.strptime(start_q, "%H:%M").time()
+                end_t = datetime.datetime.strptime(end_q, "%H:%M").time()
+                response_data["custom_price"] = str(
+                    calculate_booking_price(venue, valid_date, start_t, end_t)
+                )
+            except ValueError:
+                response_data["custom_price_error"] = "Vaqt formati noto'g'ri (HH:MM kerak)"
+
+        return Response(response_data)
 
 
 @extend_schema(
@@ -673,16 +703,15 @@ class ReviewViewSet(ModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
 
-    # ── Frontend ishlatmaydi ──
-    @extend_schema(exclude=True)
+    @extend_schema(summary="Sharhni yangilash")
     def update(self, request, *args, **kwargs):
         return super().update(request, *args, **kwargs)
 
-    @extend_schema(exclude=True)
+    @extend_schema(summary="Sharhni qisman yangilash")
     def partial_update(self, request, *args, **kwargs):
         return super().partial_update(request, *args, **kwargs)
 
-    @extend_schema(exclude=True)
+    @extend_schema(summary="Sharhni o'chirish")
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
 

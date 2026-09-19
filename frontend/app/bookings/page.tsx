@@ -19,6 +19,7 @@ const TABS: { key: FilterKey; label: string; icon: string }[] = [
 const STATUS: Record<string, { label: string; color: string; bg: string; border: string }> = {
     upcoming: {label: "Kutilmoqda", color: "#22c55e", bg: "rgba(34,197,94,0.08)", border: "rgba(34,197,94,0.2)"},
     completed: {label: "Tugallangan", color: "#9ab09a", bg: "rgba(148,163,160,0.08)", border: "rgba(148,163,160,0.18)"},
+    canceled: {label: "Bekor qilindi", color: "#ef4444", bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.18)"},
     cancelled: {label: "Bekor qilindi", color: "#ef4444", bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.18)"},
 };
 
