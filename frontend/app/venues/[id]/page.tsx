@@ -1087,7 +1087,7 @@ export default function VenueDetailPage(props: PageProps) {
                                 <button
                                     type="submit"
                                     disabled={reviewSubmitting}
-                                    className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-[#39FF14] via-[#00D26A] to-emerald-500 hover:from-[#32e010] hover:to-emerald-400 text-black font-black text-sm sm:text-base tracking-wide shadow-[0_0_30px_rgba(57,255,20,0.5)] hover:shadow-[0_0_40px_rgba(57,255,20,0.7)] transition duration-200 cursor-pointer flex items-center justify-center gap-2 border border-[#39FF14] active:scale-95"
+                                    className="w-full py-4 px-6 rounded-2xl bg-black border-2 border-[#39FF14] text-[#39FF14] font-black text-sm sm:text-base tracking-wide shadow-[0_0_20px_rgba(57,255,20,0.4)] hover:bg-[#39FF14]/15 hover:shadow-[0_0_35px_rgba(57,255,20,0.7)] transition duration-200 cursor-pointer flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {reviewSubmitting
                                         ? "Saqlanmoqda..."

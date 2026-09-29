@@ -268,9 +268,12 @@ class VenueModelSerializer(ModelSerializer):
         qoidasini birga hisoblaydi — xuddi ichki sahifada ko'rsatiladigan narx bilan
         BIR XIL funksiyadan foydalangani uchun ikkalasi hech qachon farq qilmaydi.
         """
-        if not hasattr(obj, "_today_rate_cache"):
-            obj._today_rate_cache = _get_day_rate(obj, timezone.now().date())
-        return obj._today_rate_cache
+        request = self.context.get("request") if hasattr(self, "context") and self.context else None
+        user = request.user if request and hasattr(request, "user") and getattr(request.user, "is_authenticated", False) else None
+        cache_key = f"_today_rate_cache_{getattr(user, 'id', 'anon')}"
+        if not hasattr(obj, cache_key):
+            setattr(obj, cache_key, _get_day_rate(obj, timezone.now().date(), user=user))
+        return getattr(obj, cache_key)
 
     def get_today_price(self, obj):
         """Bugungi kun uchun samarali (admin chegirmasi + hafta oxiri qoidasi hisobga
@@ -336,7 +339,7 @@ class VenueModelSerializer(ModelSerializer):
 
 
 
-def _get_day_rate(venue, on_date):
+def _get_day_rate(venue, on_date, user=None):
     base_price = Decimal(str(venue.price))
     badge = None
 
@@ -345,54 +348,11 @@ def _get_day_rate(venue, on_date):
         if getattr(venue, "sport", None)
         else ""
     )
-    is_bilyard = "bilyard" in sport_name or "billiard" in sport_name
-    is_futbol = (
-        "futbol" in sport_name or "fudbol" in sport_name or "football" in sport_name
-    )
     is_weekend = bool(
         on_date and hasattr(on_date, "weekday") and on_date.weekday() in (5, 6)
     )
-    is_flat_day = bool(is_weekend and (is_bilyard or is_futbol))
-    end_data = (on_date - venue.created_at.date()).days
-    is_new_venue = False
+
     active_discount = Discount.get_active_for_venue(venue, on_date=on_date)
-    is_tennis = "tennis" in sport_name
-    is_friday = bool(on_date and on_date.weekday() == 4)
-
-    if is_futbol and 0 <= end_data <= 3:
-        base_price = (base_price * Decimal("0.60")).quantize(Decimal("0.01"))
-        badge = {
-            "source": "weekend_rule",
-            "type": "decrease",
-            "percent": "40",
-            "label": "-40%",
-            "title": "Yangi fudbol maydon uchun! Maxsus chegirma",
-        }
-
-
-    if hasattr(venue, "created_at") and venue.created_at:
-        venue_created_date = (
-            venue.created_at.date()
-            if hasattr(venue.created_at, "date")
-            else venue.created_at
-        )
-        current_date = on_date if on_date else timezone.now().date()
-        days_diff = (current_date - venue_created_date).days
-        if 0 <= days_diff < 3:
-            is_new_venue = True
-
-
-    if is_new_venue:
-        base_price = (base_price * Decimal("0.50")).quantize(Decimal("0.01"))
-        badge = {
-            "source": "new_venue_discount",
-            "type": "decrease",
-            "percent": "50",
-            "label": "-50%",
-            "title": "Yangi arena uchun chegirma",
-        }
-        return base_price, badge, False
-
     if active_discount:
         base_price = active_discount.apply_to_price(base_price)
         sign = (
@@ -407,34 +367,33 @@ def _get_day_rate(venue, on_date):
             "label": f"{sign}{active_discount.percent}%",
             "title": active_discount.title,
         }
-        return base_price, badge, is_flat_day
+        return base_price, badge, False
 
-    if is_flat_day:
-        base_price = (base_price * Decimal("1.25")).quantize(Decimal("0.01"))
-        badge = {
-            "source": "weekend_rule",
-            "type": "increase",
-            "percent": "25",
-            "label": "+25%",
-            "title": "Dam olish kuni narxi",
-        }
-        return base_price, badge, is_flat_day
+    if user and getattr(user, "is_authenticated", False):
+        review = Review.objects.filter(user=user, venue=venue).order_by("-created_at").first()
 
-    if is_tennis and is_friday:
-        base_price = (base_price * Decimal("0.85")).quantize(Decimal("0.01"))
-        badge = {
-            "source": "tennis_rule",
-            "type": "decrease",
-            "percent": "15",
-            "label": "-15%",
-            "title": "Juma kungi chegirma",
-        }
+        if review and review.rating >= 2 and review.comment and review.comment.strip():
+            already_used = Booking.objects.filter(
+                user=user,
+                venue=venue,
+                created_at__gte=review.created_at
+            ).exclude(status=Booking.Status.CANCELED).exists()
 
-    return base_price, badge, is_flat_day
+            if not already_used:
+                base_price = (base_price * Decimal("0.80")).quantize(Decimal("0.01"))
+                badge = {
+                    "source": "review_bonus",
+                    "type": "decrease",
+                    "percent": "20",
+                    "label": "-20%",
+                    "title": "Sharh va Reyting bonusi (1 martalik)",
+                }
+                return base_price, badge, False
+
+    return base_price, badge, False
 
 
-def calculate_booking_price(venue, booking_date, start_t: time, end_t: time) -> Decimal:
-
+def calculate_booking_price(venue, booking_date, start_t: time, end_t: time, user=None) -> Decimal:
     if booking_date and isinstance(booking_date, str):
         try:
             booking_date = datetime.strptime(booking_date, "%Y-%m-%d").date()
@@ -442,7 +401,7 @@ def calculate_booking_price(venue, booking_date, start_t: time, end_t: time) -> 
             pass
 
     base_price, _badge, _is_flat_day = _get_day_rate(
-        venue, booking_date if isinstance(booking_date, date) else None
+        venue, booking_date if isinstance(booking_date, date) else None, user=user
     )
 
     start_dt = datetime.combine(date.min, start_t)
@@ -456,18 +415,11 @@ def calculate_booking_price(venue, booking_date, start_t: time, end_t: time) -> 
     return Decimal(str(round(total, 2)))
 
 
-def get_venue_slot_prices(venue, on_date):
-    """
-    Berilgan sana uchun venue ish vaqti ichidagi HAR BIR standart (1 soatlik) slotning
-    narxi va ko'rsatiladigan belgisini qaytaradi. Frontend bu ro'yxatni to'g'ridan-to'g'ri
-    ekranga chiqaradi — o'zi HECH QANDAY qo'shimcha hisob-kitob qilmaydi.
-
-    Qaytaradi: (slots: list[dict], day_price: str, day_badge: dict|None)
-    """
+def get_venue_slot_prices(venue, on_date, user=None):
     if not venue.start_time or not venue.end_time:
         return [], None, None
 
-    day_price, day_badge, is_flat_day = _get_day_rate(venue, on_date)
+    day_price, day_badge, is_flat_day = _get_day_rate(venue, on_date, user=user)
 
     slots = []
     h = venue.start_time.hour
@@ -477,46 +429,8 @@ def get_venue_slot_prices(venue, on_date):
         start_t = time(h, m)
         next_h = h + 1
         end_t = time(next_h if next_h < 24 else 0, m)
-        slot_price = calculate_booking_price(venue, on_date, start_t, end_t)
-
-        if is_flat_day:
-            badge = day_badge
-        elif h >= 20:
-            sport_name_lower = (
-                getattr(venue.sport, "name", "").lower()
-                if getattr(venue, "sport", None)
-                else ""
-            )
-            is_basketbol_slot = (
-                "basketbol" in sport_name_lower or "basketbool" in sport_name_lower
-            )
-
-            if is_basketbol_slot:
-                slot_price = (Decimal(slot_price) * Decimal("0.50")).quantize(
-                    Decimal("0.01")
-                )
-                badge = {
-                    "source": "basketbol",
-                    "type": "decrease",
-                    "percent": "50",
-                    "label": "-50",
-                    "title": "Kechki chegirma",
-                }
-            else:
-                slot_price = (Decimal(slot_price) * Decimal("0.50")).quantize(
-                    Decimal("0.01")
-                )
-                badge = {
-                    "source": "basketbol",
-                    "type": "decrease",
-                    "percent": "50",
-                    "label": "-50",
-                    "title": "Kechki chegirma",
-                }
-
-        else:
-            badge = day_badge
-
+        slot_price = calculate_booking_price(venue, on_date, start_t, end_t, user=user)
+        badge = day_badge
         slots.append(
             {
                 "start": start_t.strftime("%H:%M"),
@@ -576,8 +490,9 @@ class BookingModelSerializer(ModelSerializer):
         """
         if obj.paid_amount is not None and obj.remaining_amount is not None:
             return obj.paid_amount + obj.remaining_amount
+        user = getattr(obj, "user", None)
         return calculate_booking_price(
-            obj.venue, obj.date, obj.start_time, obj.end_time
+            obj.venue, obj.date, obj.start_time, obj.end_time, user=user
         )
 
     def validate(self, data):
@@ -619,7 +534,7 @@ class BookingModelSerializer(ModelSerializer):
         payment_type = validated_data.get("payment_type", "full")
 
         calculated_total = calculate_booking_price(
-            venue, req_date, start_time, end_time
+            venue, req_date, start_time, end_time, user=user
         )
 
         if payment_type == "deposit_50":

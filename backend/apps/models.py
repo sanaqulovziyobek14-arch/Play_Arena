@@ -238,9 +238,9 @@ class Review(Model):
     created_at = DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = (("user", "venue"),)
         verbose_name = "Sharh"
         verbose_name_plural = "Sharhlar"
+        ordering = ("-created_at",)
 
 
 # -------------------------------------------------------------------------------

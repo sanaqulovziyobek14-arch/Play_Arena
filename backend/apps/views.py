@@ -232,7 +232,7 @@ class VenueViewSet(ModelViewSet):
     filterset_fields = ["sport", "has_wifi", "has_parking"]
     search_fields = ["name", "address", "description"]
     ordering_fields = ["price", "created_at", "rating"]
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [AllowAny]
 
     def get_queryset(self):
         """
@@ -530,10 +530,8 @@ class VenueBookedSlotsAPIView(APIView):
         ]
         booked_starts = {b["start"][:5] for b in booked_list}  # "HH:MM:SS" -> "HH:MM"
 
-        # YAGONA HAQIQAT MANBAI: har bir standart soatlik slotning narxi va belgisi
-        # backendning o'zida (calculate_booking_price bilan bir xil funksiyada)
-        # hisoblanadi — frontend buni faqat ko'rsatadi, o'zi qayta hisoblamaydi.
-        slots, day_price, day_badge = get_venue_slot_prices(venue, valid_date)
+        user = request.user if hasattr(request, "user") and getattr(request.user, "is_authenticated", False) else None
+        slots, day_price, day_badge = get_venue_slot_prices(venue, valid_date, user=user)
         for s in slots:
             s["booked"] = s["start"] in booked_starts
 
@@ -553,7 +551,7 @@ class VenueBookedSlotsAPIView(APIView):
                 start_t = datetime.datetime.strptime(start_q, "%H:%M").time()
                 end_t = datetime.datetime.strptime(end_q, "%H:%M").time()
                 response_data["custom_price"] = str(
-                    calculate_booking_price(venue, valid_date, start_t, end_t)
+                    calculate_booking_price(venue, valid_date, start_t, end_t, user=user)
                 )
             except ValueError:
                 response_data["custom_price_error"] = "Vaqt formati noto'g'ri (HH:MM kerak)"
@@ -660,7 +658,7 @@ class PaymentViewSet(ModelViewSet):
 class ReviewViewSet(ModelViewSet):
     """Sharhlar"""
 
-    queryset = Review.objects.select_related("user", "venue")
+    queryset = Review.objects.select_related("user", "venue").order_by("-created_at")
     serializer_class = ReviewModelSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend]
@@ -671,16 +669,7 @@ class ReviewViewSet(ModelViewSet):
             raise PermissionDenied("Bu amalni bajarish huquqingiz yo'q.")
 
     def perform_create(self, serializer):
-        user = self.request.user
-        venue = serializer.validated_data["venue"]
-        existing = Review.objects.filter(user=user, venue=venue).first()
-        if existing:
-            existing.rating = serializer.validated_data.get("rating", existing.rating)
-            existing.comment = serializer.validated_data.get("comment", existing.comment)
-            existing.save()
-            serializer.instance = existing
-        else:
-            serializer.save(user=user)
+        serializer.save(user=self.request.user)
 
 
     def perform_update(self, serializer):
